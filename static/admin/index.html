@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Admin</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=2">
+    <link rel="stylesheet" href="/static/game/paper-admin.css?v=1">
+    <style>
+        .hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+        .hub a { background: var(--card); padding: 18px; box-shadow: var(--shadow); text-decoration: none; color: var(--ink); display: flex; flex-direction: column; gap: 6px; transition: transform .1s; }
+        .hub a:nth-child(odd) { transform: rotate(-.4deg); } .hub a:nth-child(even) { transform: rotate(.4deg); }
+        .hub a:hover { transform: translateY(-3px); }
+        .hub .ic { font-size: 30px; }
+        .hub strong { font-family: var(--marker); font-weight: 400; font-size: 22px; }
+        .hub span { color: var(--muted); font-size: 16px; line-height: 1.25; }
+        .hub .go { margin-top: auto; color: var(--red); font-family: var(--marker); font-size: 15px; }
+    </style>
+</head>
+<body>
+<nav class="admin-nav"></nav>
+<script src="/static/game/admin-nav.js?v=1"></script>
+<div class="container">
+    <div class="paper-head"><h1>Dungeon Admin</h1><p>Everything behind the curtain. Players never see these pages.</p></div>
+    <div class="hub">
+        <a href="/admin/monsters"><span class="ic">👹</span><strong>Monster Workshop</strong><span>Build new monsters, switch them on or off, and turn players' monster ideas into real ones.</span><span class="go">Open →</span></a>
+        <a href="/admin/loot"><span class="ic">⚔️</span><strong>Item Armory</strong><span>Forge gear by hand: name, stats, rarity and flavor text. It joins the loot that drops in dungeons.</span><span class="go">Open →</span></a>
+        <a href="/admin/radar"><span class="ic">📡</span><strong>Release Radar</strong><span>Track series for new releases, sync from the library and run release checks.</span><span class="go">Open →</span></a>
+        <a href="/admin/requests"><span class="ic">✉️</span><strong>Requests</strong><span>Books and series your listeners asked for. Check them off when they're in the library.</span><span class="go">Open →</span></a>
+        <a href="/admin/ops"><span class="ic">🛠️</span><strong>System Core</strong><span>Recommendation tags, new loot, and icon repair.</span><span class="go">Open →</span></a>
+        <a href="/static/game/monsters.html"><span class="ic">📖</span><strong>All monsters</strong><span>Every monster that can appear, by level tier, with stats. Players see only what they've met, in their Bestiary.</span><span class="go">Open →</span></a>
+    </div>
+</div>
+</body>
+</html>

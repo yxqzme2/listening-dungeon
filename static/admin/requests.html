@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requests · Dungeon Admin</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=2">
+    <link rel="stylesheet" href="/static/game/paper-admin.css?v=1">
+</head>
+<body>
+
+<nav class="admin-nav"></nav>
+<script src="/static/game/admin-nav.js?v=1"></script>
+
+<header>
+    <h1>Requests</h1>
+    <a href="/request">Public Request page</a>
+</header>
+
+<div class="page-wrap">
+
+    <div class="toolbar">
+        <button class="btn btn-green" onclick="verifyAll()" id="btn-verify">&#8635; Verify All</button>
+        <span class="toolbar-count" id="toolbar-count"></span>
+    </div>
+
+    <div class="section-label">Request checklist</div>
+    <div class="requests-panel">
+        <div id="requests-list" class="requests-list">
+            <span style="color:var(--text-muted);font-size:.8rem">Loading&hellip;</span>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+async function loadRequests() {
+    try {
+        const resp = await fetch('/admin/api/requests');
+        const data = await resp.json();
+        renderRequests(data.requests || []);
+    } catch (e) { console.error(e); }
+}
+
+function renderRequests(requests) {
+    const container = document.getElementById('requests-list');
+    const countEl = document.getElementById('toolbar-count');
+    const pending = requests.filter(r => r.status === 'pending').length;
+    const fulfilled = requests.filter(r => r.status === 'fulfilled').length;
+    countEl.textContent = `${pending} pending · ${fulfilled} fulfilled`;
+
+    if (!requests.length) {
+        container.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem">No requests yet. Users can submit requests from the public request page.</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    requests.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'request-card' + (r.status === 'fulfilled' ? ' fulfilled' : '');
+
+        const isFulfilled = r.status === 'fulfilled';
+        const coverHtml = r.cover_url
+            ? `<img class="req-cover" src="${escHtml(r.cover_url)}" alt="" onerror="this.outerHTML='<div class=req-cover-ph>&#127911;</div>'">`
+            : `<div class="req-cover-ph">&#127911;</div>`;
+
+        let metaHtml = `<span>${timeAgo(r.created_at)}</span>`;
+        if (isFulfilled && r.fulfilled_at) {
+            const daysLeft = Math.max(0, 7 - Math.floor((Date.now()/1000 - r.fulfilled_at) / 86400));
+            metaHtml += ` <span class="req-countdown">${daysLeft}d until removed</span>`;
+        }
+
+        const pillHtml = isFulfilled
+            ? '<span class="req-pill pill-fulfilled">Fulfilled</span>'
+            : '<span class="req-pill pill-pending">Pending</span>';
+
+        card.innerHTML = `
+            <div class="req-checkbox ${isFulfilled ? 'checked' : ''}"
+                 onclick="toggleCheck(${r.id}, ${isFulfilled ? 'true' : 'false'})"
+                 title="${isFulfilled ? 'Mark as pending' : 'Mark as fulfilled'}">&#10003;</div>
+            ${coverHtml}
+            <div class="req-content">
+                <div class="req-series">${escHtml(r.series_name)}</div>
+                ${r.book_title ? `<div class="req-book">Book: ${escHtml(r.book_title)}</div>` : ''}
+                ${r.author ? `<div class="req-author">${escHtml(r.author)}</div>` : ''}
+                ${r.note ? `<div class="req-note">"${escHtml(r.note)}"</div>` : ''}
+                <div class="req-meta">${metaHtml} ${pillHtml}</div>
+            </div>
+            <div class="req-actions">
+                <button class="req-delete" title="Remove request" onclick="deleteRequest(${r.id}, this)">&#10005;</button>
+            </div>`;
+        container.appendChild(card);
+    });
+}
+
+async function toggleCheck(id, currentlyFulfilled) {
+    const endpoint = currentlyFulfilled
+        ? `/admin/api/requests/${id}/uncheck`
+        : `/admin/api/requests/${id}/check`;
+    try {
+        await fetch(endpoint, { method: 'POST' });
+        await loadRequests();
+    } catch (e) { console.error(e); }
+}
+
+async function deleteRequest(id, btn) {
+    if (!confirm('Remove this request?')) return;
+    try {
+        const resp = await fetch(`/admin/api/requests/${id}`, { method: 'DELETE' });
+        if (resp.ok) {
+            await loadRequests();
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function verifyAll() {
+    const btn = document.getElementById('btn-verify');
+    btn.disabled = true;
+    btn.innerHTML = `&#8635; Verifying&hellip;<span class="spinner"></span>`;
+    try {
+        const resp = await fetch('/admin/api/requests/verify', { method: 'POST' });
+        const data = await resp.json();
+        btn.innerHTML = `&#8635; Verify All`;
+        if (data.fulfilled > 0) {
+            showToast(`Verified: ${data.fulfilled} of ${data.checked} now in library`);
+        } else {
+            showToast(`Checked ${data.checked} requests — none found in library yet`);
+        }
+        await loadRequests();
+    } catch (e) {
+        btn.innerHTML = `&#8635; Verify All`;
+        console.error(e);
+    }
+    btn.disabled = false;
+}
+
+function timeAgo(ts) {
+    const secs = Math.floor(Date.now()/1000) - ts;
+    if (secs < 60)   return 'just now';
+    if (secs < 3600) return Math.floor(secs/60) + 'm ago';
+    if (secs < 86400) return Math.floor(secs/3600) + 'h ago';
+    return Math.floor(secs/86400) + 'd ago';
+}
+
+let _toastTimer;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadRequests();
+</script>
+</body>
+</html>

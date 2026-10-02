@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommendations · The Listening Dungeon</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=1">
+    <link rel="stylesheet" href="/static/recommendations.css?v=6">
+</head>
+<body>
+
+<nav class="nav-bar"></nav>
+<script src="/static/game/paper-nav.js?v=1"></script>
+
+<div class="page-content">
+    <div class="rec-header paper-head">
+        <h1 class="rec-title">What to listen to next</h1>
+        <p class="rec-subtitle">Recommendations built from your Tier List.</p>
+    </div>
+
+    <div class="user-picker" id="user-picker">
+        <span class="picker-label">Viewing as:</span>
+        <select id="user-select"><option value="">Loading users&hellip;</option></select>
+    </div>
+
+    <div class="rec-layout">
+        <aside class="taste-profile" id="taste-profile" aria-labelledby="taste-profile-title">
+            <div class="taste-profile-heading">
+                <div>
+                    <div class="taste-profile-kicker">Tier List signals</div>
+                    <h2 id="taste-profile-title">Taste Profile</h2>
+                </div>
+                <div class="taste-profile-total" id="taste-profile-total-wrap" aria-label="Liked series count">
+                    <strong id="taste-profile-total">0</strong>
+                    <span>liked</span>
+                </div>
+            </div>
+            <p class="taste-profile-intro">Most common traits among series rated B or better.</p>
+            <div class="taste-profile-tiers" id="taste-profile-tiers" aria-label="Liked series by tier"></div>
+            <div class="taste-profile-status" id="taste-profile-status" role="status">Loading profile&hellip;</div>
+            <div class="taste-profile-bars" id="taste-profile-bars"></div>
+            <div class="taste-profile-note">Bar length shows how many liked series share each trait.</div>
+        </aside>
+        <div class="rec-main">
+            <div id="rec-status" class="rec-status"></div>
+            <div id="rec-list" class="rec-list"></div>
+        </div>
+        <button id="tag-sidebar-toggle" class="tag-sidebar-toggle" aria-expanded="false">Boost Tags</button>
+        <div id="tag-sidebar-backdrop" class="tag-sidebar-backdrop"></div>
+        <aside class="tag-sidebar" id="tag-sidebar">
+            <button id="tag-sidebar-close" class="tag-sidebar-close" aria-label="Close tag panel">&times;</button>
+            <div class="tag-sidebar-header">
+                <span>Boost by tag</span>
+                <button id="tag-clear-btn" class="tag-clear-btn">Clear</button>
+            </div>
+            <div class="tag-sidebar-hint">Check a tag to boost series that have it, even ones your Tier List has no history with. Hover a tag to see what it means.</div>
+            <label class="fresh-toggle">
+                <input type="checkbox" id="fresh-toggle-input">
+                <span>Start from scratch: ignore my Tier List, just match checked tags</span>
+            </label>
+            <div id="tag-checklist" class="tag-checklist"></div>
+        </aside>
+    </div>
+
+    <div id="tag-popover" class="tag-popover" style="display:none">
+        <div id="tag-popover-title" class="tag-popover-title"></div>
+        <div id="tag-popover-desc"></div>
+    </div>
+
+    <div id="cover-popover" class="cover-popover" style="display:none">
+        <img id="cover-popover-img" class="cover-popover-img" src="" alt="">
+        <div class="cover-popover-body">
+            <div id="cover-popover-title" class="cover-popover-title"></div>
+            <div id="cover-popover-desc" class="cover-popover-desc"></div>
+        </div>
+    </div>
+
+    <dialog id="playlist-dialog" class="playlist-dialog" aria-labelledby="playlist-dialog-title">
+        <button id="playlist-dialog-close" class="playlist-dialog-close" type="button" aria-label="Close">&times;</button>
+        <div class="playlist-dialog-kicker">Audiobookshelf playlist</div>
+        <h2 id="playlist-dialog-title">Add series</h2>
+        <p id="playlist-dialog-summary" class="playlist-dialog-summary"></p>
+        <label id="playlist-choice-wrap" class="playlist-dialog-field">
+            <span>Playlist</span>
+            <select id="playlist-choice"></select>
+        </label>
+        <label class="playlist-dialog-field">
+            <span>Profile PIN</span>
+            <input id="playlist-pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="32">
+        </label>
+        <div id="playlist-dialog-status" class="playlist-dialog-status" role="status" aria-live="polite"></div>
+        <div class="playlist-dialog-actions">
+            <button id="playlist-cancel" class="playlist-cancel" type="button">Cancel</button>
+            <button id="playlist-confirm" class="playlist-confirm" type="button">Add books</button>
+        </div>
+    </dialog>
+
+    <div class="tag-panel" id="tag-panel" style="display:none">
+        <h2 class="tag-panel-title">Add a tag to a series you've read</h2>
+        <div class="tag-panel-hint">You can only tag a series after finishing at least its first book.</div>
+        <div class="tag-form">
+            <input type="text" id="tag-series-input" placeholder="Series name" list="series-datalist">
+            <datalist id="series-datalist"></datalist>
+            <input type="text" id="tag-value-input" placeholder="Tag (e.g. cultivation, dungeon core)">
+            <button id="tag-submit-btn">Add Tag</button>
+        </div>
+        <div id="tag-form-status"></div>
+    </div>
+</div>
+
+<script src="/static/recommendations.js?v=5"></script>
+</body>
+</html>

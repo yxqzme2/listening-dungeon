@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Listening Dungeon Setup Builder</title>
+<style>
+  :root { --paper: #F6F0E1; --card: #FBF8F0; --ink: #2B2621; --muted: #6E665B; --red: #D6503E; --navy: #22305A; --mustard: #E3A93B; --line: #D9CFBB; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 0 0 10px; }
+  .lede { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); padding: 18px; margin-bottom: 16px; box-shadow: 2px 4px 0 rgba(0,0,0,.08); }
+  label { display: block; font-weight: 600; margin: 12px 0 4px; }
+  label small { font-weight: 400; color: var(--muted); }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 2px solid var(--line); background: #fff; font: inherit; color: var(--ink); }
+  textarea { min-height: 70px; font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+  .inline { display: flex; gap: 8px; } .inline input { flex: 1; }
+  button { font: inherit; cursor: pointer; border: 0; padding: 9px 16px; background: var(--navy); color: #fff; }
+  button.alt { background: var(--line); color: var(--ink); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button { background: var(--line); color: var(--ink); }
+  .tabs button[aria-pressed="true"] { background: var(--red); color: #fff; }
+  pre { background: #1E1B17; color: #F3EBDA; padding: 12px; overflow-x: auto; font-size: 13px; max-height: 360px; }
+  .file { margin-bottom: 18px; }
+  .file-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .file-head b { font-family: ui-monospace, Menlo, monospace; }
+  .warn { border-left: 6px solid var(--mustard); background: #FFF6E0; padding: 10px 12px; margin-bottom: 14px; }
+  ol { padding-left: 20px; } li { margin-bottom: 4px; }
+  code { background: #EFE7D4; padding: 1px 5px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>The Listening Dungeon · Setup Builder</h1>
+  <p class="lede">Fill this in once and download ready-made Unraid templates, a Docker <code>.env</code>, or a Portainer stack.
+    Everything happens in this page: nothing is sent anywhere.</p>
+
+  <div class="warn">The files you download contain your Audiobookshelf tokens and admin password. Keep them private.</div>
+
+  <section class="card">
+    <h2>1. Audiobookshelf</h2>
+    <label>ABS address <small>as a container would reach it, e.g. http://192.168.1.50:13378 (not localhost)</small></label>
+    <input id="abs_url" placeholder="http://192.168.1.50:13378">
+    <label>Admin API token <small>ABS → Settings → Users → your admin user → API token</small></label>
+    <input id="abs_token" type="password" autocomplete="off">
+    <label>Players' own tokens <small>optional, one per line as username:token. Unlocks their personal playlists.</small></label>
+    <textarea id="abs_tokens" placeholder="alice:eyJhbGciOi...&#10;bob:eyJhbGciOi..."></textarea>
+  </section>
+
+  <section class="card">
+    <h2>2. Players and admin</h2>
+    <div class="row">
+      <div><label>Players <small>ABS usernames, comma-separated. Empty = everyone.</small></label><input id="players" placeholder="alice,bob"></div>
+      <div><label>Display names <small>optional: alice:Alice,bob:Dad</small></label><input id="aliases"></div>
+    </div>
+    <div class="row">
+      <div><label>Admin password <small>for /admin</small></label><input id="admin_pw" type="password" autocomplete="new-password"></div>
+      <div><label>Admin session key <small>long random text</small></label>
+        <div class="inline"><input id="admin_secret" autocomplete="off"><button class="alt" id="gen" type="button">Generate</button></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Where it runs</h2>
+    <div class="row">
+      <div><label>Timezone</label><input id="tz" list="tzs" value="America/New_York">
+        <datalist id="tzs"><option>America/New_York</option><option>America/Chicago</option><option>America/Denver</option><option>America/Los_Angeles</option><option>America/Phoenix</option><option>Europe/London</option><option>Europe/Berlin</option><option>Australia/Sydney</option><option>UTC</option></datalist></div>
+      <div><label>Game port</label><input id="game_port" type="number" value="8000"></div>
+      <div><label>abs-stats port</label><input id="stats_port" type="number" value="3000"></div>
+    </div>
+    <div class="row">
+      <div><label>Server IP <small>Unraid: your server's LAN IP</small></label><input id="server_ip" placeholder="192.168.1.50"></div>
+      <div><label>Unraid appdata folder</label><input id="appdata" value="/mnt/user/appdata/listening-dungeon"></div>
+      <div><label>Docker network <small>Unraid: bridge, or a custom network both share</small></label><input id="network" value="bridge"></div>
+    </div>
+    <label>Image owner <small>only change this if you publish your own fork</small></label>
+    <input id="owner" value="yxqzme2">
+  </section>
+
+  <section class="card">
+    <h2>4. Your files</h2>
+    <div class="tabs" role="tablist">
+      <button type="button" data-tab="unraid" aria-pressed="true">Unraid</button>
+      <button type="button" data-tab="compose" aria-pressed="false">Docker Compose</button>
+      <button type="button" data-tab="portainer" aria-pressed="false">Portainer</button>
+    </div>
+    <div id="out"></div>
+  </section>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const FIELDS = ["abs_url", "abs_token", "abs_tokens", "players", "aliases", "admin_pw", "admin_secret", "tz", "game_port", "stats_port", "server_ip", "appdata", "network", "owner"];
+  let tab = "unraid";
+  const xml = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const yamlQ = (s) => `"${String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+  const v = () => {
+    const o = Object.fromEntries(FIELDS.map((f) => [f, $(f).value.trim()]));
+    o.tokens = o.abs_tokens.split(/[\n,]+/).map((t) => t.trim()).filter(Boolean).join(",");
+    o.ip = o.server_ip || "YOUR-SERVER-IP";
+    o.custom = o.network && o.network !== "bridge" && o.network !== "host";
+    o.statsAddr = o.custom ? "http://listening-dungeon-abs-stats:3000" : `http://${o.ip}:${o.stats_port || 3000}`;
+    o.gameAddr = o.custom ? "http://listening-dungeon:8000" : `http://${o.ip}:${o.game_port || 8000}`;
+    return o;
+  };
+  const cfg = (name, target, value, desc, extra = {}) =>
+    `  <Config Name="${xml(name)}" Target="${xml(target)}" Default="" Mode="${extra.mode || ""}" Description="${xml(desc)}" Type="${extra.type || "Variable"}" Display="${extra.display || "always"}" Required="${extra.required ? "true" : "false"}" Mask="${extra.mask ? "true" : "false"}">${xml(value)}</Config>`;
+  const head = (o, name, image, overview, webui) => `<?xml version="1.0"?>
+<Container version="2">
+  <Name>${name}</Name>
+  <Repository>ghcr.io/${xml(o.owner)}/${image}:latest</Repository>
+  <Network>${xml(o.network || "bridge")}</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/${xml(o.owner)}/listening-dungeon/issues</Support>
+  <Project>https://github.com/${xml(o.owner)}/listening-dungeon</Project>
+  <Overview>${xml(overview)}</Overview>
+  <Category>MediaApp:Books</Category>
+${webui ? `  <WebUI>${webui}</WebUI>\n` : ""}  <Icon>https://raw.githubusercontent.com/${xml(o.owner)}/listening-dungeon/main/docs/images/icon.png</Icon>`;
+  function unraidGame(o) {
+    return `${head(o, "listening-dungeon", "listening-dungeon", "The Listening Dungeon: every audiobook your players finish becomes a dungeon to crawl.", "http://[IP]:[PORT:8000]/")}
+${cfg("Web port", "8000", o.game_port || 8000, "The port you open the game on.", { type: "Port", mode: "tcp", required: true })}
+${cfg("Data", "/data", o.appdata || "/mnt/user/appdata/listening-dungeon", "Database, covers and settings. Back this up.", { type: "Path", mode: "rw", required: true })}
+${cfg("abs-stats address", "ABSSTATS_BASE_URL", o.statsAddr, "Where this container reaches abs-stats.", { required: true })}
+${cfg("Admin password", "ADMIN_PASSWORD", o.admin_pw, "Password for /admin.", { required: true, mask: true })}
+${cfg("Admin session key", "ADMIN_SESSION_SECRET", o.admin_secret, "Keeps admin logins working across restarts.", { mask: true })}
+${cfg("Players", "ALLOWED_USERS", o.players, "ABS usernames who can play. Empty = everyone.")}
+${cfg("Display names", "USER_ALIASES", o.aliases, "absusername:Name pairs.")}
+${cfg("Timezone", "TZ", o.tz, "Your timezone.")}
+${cfg("Database path", "STATE_DB_PATH", "/data/state.db", "Leave as is.", { display: "advanced" })}
+${cfg("Release Radar check (hours)", "RADAR_CHECK_INTERVAL_HOURS", "12", "How often Release Radar checks Audible.", { display: "advanced" })}
+</Container>
+`;
+  }
+  function unraidStats(o) {
+    return `${head(o, "listening-dungeon-abs-stats", "listening-dungeon-abs-stats", "Companion to The Listening Dungeon: reads your Audiobookshelf stats and serves them to the game.", "")}
+${cfg("API port", "3000", o.stats_port || 3000, "The game connects here.", { type: "Port", mode: "tcp", required: true })}
+${cfg("Audiobookshelf address", "ABS_URL", o.abs_url, "Your ABS server as this container can reach it.", { required: true })}
+${cfg("ABS admin API token", "ABS_TOKEN", o.abs_token, "API token of an ABS admin user.", { required: true, mask: true })}
+${cfg("Players' own tokens", "ABS_TOKENS", o.tokens, "username:token pairs (optional).", { mask: true })}
+${cfg("Players", "ALLOWED_USERNAMES", o.players || "*", "ABS usernames to include, or * for everyone.")}
+${cfg("Game address", "ENGINE_URL", o.gameAddr, "Where abs-stats reaches the game.", { display: "advanced" })}
+${cfg("Timezone", "TZ", o.tz, "Your timezone.", { display: "advanced" })}
+</Container>
+`;
+  }
+  function envFile(o) {
+    return `# The Listening Dungeon: settings for docker-compose.yml (keep private)
+ABS_URL=${o.abs_url}
+ABS_TOKEN=${o.abs_token}
+ABS_TOKENS=${o.tokens}
+ALLOWED_USERS=${o.players}
+USER_ALIASES=${o.aliases}
+ADMIN_PASSWORD=${o.admin_pw}
+ADMIN_SESSION_SECRET=${o.admin_secret}
+TZ=${o.tz}
+GAME_PORT=${o.game_port || 8000}
+RADAR_CHECK_INTERVAL_HOURS=12
+`;
+  }
+  function stack(o) {
+    return `# The Listening Dungeon: Portainer stack (keep private: it contains your tokens)
+services:
+  abs-stats:
+    image: ghcr.io/${o.owner}/listening-dungeon-abs-stats:latest
+    container_name: listening-dungeon-abs-stats
+    environment:
+      ABS_URL: ${yamlQ(o.abs_url)}
+      ABS_TOKEN: ${yamlQ(o.abs_token)}
+      ABS_TOKENS: ${yamlQ(o.tokens)}
+      ALLOWED_USERNAMES: ${yamlQ(o.players || "*")}
+      ENGINE_URL: "http://listening-dungeon:8000"
+      TZ: ${yamlQ(o.tz)}
+    restart: unless-stopped
+
+  listening-dungeon:
+    image: ghcr.io/${o.owner}/listening-dungeon:latest
+    container_name: listening-dungeon
+    depends_on: [abs-stats]
+    ports:
+      - "${o.game_port || 8000}:8000"
+    volumes:
+      - listening-dungeon-data:/data
+    environment:
+      ABSSTATS_BASE_URL: "http://abs-stats:3000"
+      STATE_DB_PATH: "/data/state.db"
+      TZ: ${yamlQ(o.tz)}
+      ADMIN_PASSWORD: ${yamlQ(o.admin_pw)}
+      ADMIN_SESSION_SECRET: ${yamlQ(o.admin_secret)}
+      ALLOWED_USERS: ${yamlQ(o.players)}
+      USER_ALIASES: ${yamlQ(o.aliases)}
+    restart: unless-stopped
+
+volumes:
+  listening-dungeon-data:
+`;
+  }
+  const fileBox = (name, text) => `<div class="file"><div class="file-head"><b>${name}</b>
+      <span><button type="button" class="alt" data-copy="${name}">Copy</button> <button type="button" data-save="${name}">Download</button></span></div>
+      <pre>${xml(text)}</pre></div>`;
+  let files = {};
+  function render() {
+    const o = v();
+    const missing = [!o.abs_url && "ABS address", !o.abs_token && "admin API token", !o.admin_pw && "admin password"].filter(Boolean);
+    let html = missing.length ? `<div class="warn">Still needed: ${missing.join(", ")}.</div>` : "";
+    if (tab === "unraid") {
+      files = { "my-listening-dungeon-abs-stats.xml": unraidStats(o), "my-listening-dungeon.xml": unraidGame(o) };
+      html += `<ol><li>Download both files and copy them to <code>/boot/config/plugins/dockerMan/templates-user/</code> on your Unraid flash drive (the <b>flash</b> share).</li>
+        <li>Docker tab → <b>Add Container</b> → pick <b>listening-dungeon-abs-stats</b> from the Template list → Apply. Then the same for <b>listening-dungeon</b>.</li>
+        <li>Open <code>http://${xml(o.ip)}:${o.game_port || 8000}</code>. ${o.custom ? `Create the network first if it doesn't exist: <code>docker network create ${xml(o.network)}</code>.` : ""}</li></ol>`;
+    } else if (tab === "compose") {
+      files = { ".env": envFile(o) };
+      html += `<ol><li>Put this <code>.env</code> next to <code>docker-compose.yml</code> from the repo.</li><li>Run <code>docker compose up -d</code>.</li><li>Open <code>http://localhost:${o.game_port || 8000}</code> (or this machine's IP).</li></ol>`;
+    } else {
+      files = { "listening-dungeon-stack.yml": stack(o) };
+      html += `<ol><li>Portainer → <b>Stacks</b> → <b>Add stack</b> → Web editor.</li><li>Paste this in, then <b>Deploy the stack</b>.</li><li>Open <code>http://&lt;docker-host&gt;:${o.game_port || 8000}</code>.</li></ol>`;
+    }
+    html += Object.entries(files).map(([n, t]) => fileBox(n, t)).join("");
+    $("out").innerHTML = html;
+    $("out").querySelectorAll("[data-save]").forEach((b) => b.onclick = () => {
+      const url = URL.createObjectURL(new Blob([files[b.dataset.save]], { type: "text/plain" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: b.dataset.save });
+      a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $("out").querySelectorAll("[data-copy]").forEach((b) => b.onclick = async () => {
+      try { await navigator.clipboard.writeText(files[b.dataset.copy]); b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200); } catch { /* clipboard blocked */ }
+    });
+  }
+  $("gen").onclick = () => {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    $("admin_secret").value = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    render();
+  };
+  document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => {
+    tab = b.dataset.tab;
+    document.querySelectorAll("[data-tab]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  });
+  FIELDS.forEach((f) => $(f).addEventListener("input", render));
+  render();
+</script>
+</body>
+</html>

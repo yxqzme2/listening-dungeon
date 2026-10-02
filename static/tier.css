@@ -1,0 +1,96 @@
+/* Tier List — paper-craft theme (tokens in /static/game/paper.css).
+ * #capture-area is exported as an image (html2canvas), so it keeps solid colors. */
+:root { --row-h: 128px; --tier-w: 1120px; --tab-text: var(--muted); }
+body.paper { display: flex; flex-direction: column; align-items: center; padding: 0 0 40px; }
+
+/* tool bar */
+.btn-container { margin: 4px 0 18px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; background: var(--card);
+  padding: 12px; width: calc(100% - 32px); max-width: var(--tier-w); box-shadow: var(--shadow); }
+body.paper button { padding: 6px 14px; cursor: pointer; background: var(--navy); color: var(--card); border: 0; font-family: var(--marker); font-size: 15px;
+  box-shadow: 2px 3px 0 rgba(0,0,0,.22); clip-path: var(--tilt); }
+body.paper button:hover { transform: translateY(-1px); }
+body.paper button:active { transform: translateY(2px); }
+body.paper button.danger { background: var(--red); }
+#status { margin-left: auto; font-size: 15px; color: var(--muted); user-select: none; }
+.search-wrap { position: relative; flex-grow: 1; min-width: 200px; }
+#search-bar { width: 100%; padding: 6px 12px; background: var(--paper); border: 2px solid var(--ink); color: var(--ink); font-family: var(--hand); font-size: 17px; outline: none; }
+#search-bar:focus { border-color: var(--navy); }
+
+/* the board (exported as an image) */
+.tier-workspace { display: flex; justify-content: center; align-items: flex-start; width: 100%; position: relative; padding-bottom: 30px; }
+#capture-area { padding: 14px; background: #FBF8F0; width: var(--tier-w); box-sizing: border-box; box-shadow: 3px 6px 0 rgba(0,0,0,.18); }
+h2.board-title { text-align: center; margin: 6px 0 14px; font-family: var(--marker); font-weight: 400; font-size: 30px; color: #2B2621; }
+.tier-row { display: flex; width: 100%; min-height: var(--row-h); margin-bottom: 6px; background: #EFE7D4; }
+.tier-header { width: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; color: #2B2621; text-align: center; flex-shrink: 0; user-select: none; }
+.label { font-size: 40px; line-height: 1; font-family: var(--marker); }
+.description { font-size: 14px; font-family: var(--hand); line-height: 1.1; }
+.items { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; min-height: var(--row-h); align-content: flex-start; }
+.s { background: #E8836F; } .a { background: #EFB36A; } .b { background: #F2D46B; }
+.c { background: #B9D38A; } .d { background: #8FC9C0; } .e { background: #A8B8E0; } .f { background: #B9B1A2; }
+.book { width: 104px; height: 104px; object-fit: cover; cursor: grab; border: 4px solid #FBF8F0; box-shadow: 0 3px 6px rgba(0,0,0,.2); user-select: none; -webkit-user-drag: element; touch-action: manipulation; }
+.book.selected { outline: 4px solid var(--navy); outline-offset: 1px; }
+
+/* library of covers */
+#library-section { width: calc(100% - 32px); max-width: var(--tier-w); margin-top: 10px; }
+#library-section h3 { font-family: var(--marker); font-weight: 400; font-size: 22px; margin: 0 0 8px; }
+#library-section h3 span { font-family: var(--hand); font-size: 15px; color: var(--muted); }
+#library { background: var(--card); padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; min-height: 200px; box-shadow: var(--shadow); }
+
+/* saved lists */
+.sidebar-right { position: fixed; right: 0; top: 120px; width: 240px; background: var(--card); padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  max-height: calc(100vh - 150px); overflow-y: auto; box-shadow: -3px 5px 0 rgba(0,0,0,.14); z-index: 100; border-left: 6px solid var(--mustard); }
+.sidebar-header-title { font-family: var(--marker); font-size: 18px; padding-bottom: 6px; border-bottom: 2px dotted var(--line); text-align: right; }
+.saved-lists-container { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.save-item { display: flex; flex-direction: column; background: var(--paper); padding: 8px 10px; cursor: pointer; width: 100%; text-align: right; box-shadow: 2px 3px 0 rgba(0,0,0,.1); transition: transform .1s; }
+.save-item:hover { transform: translateX(-3px); }
+.save-item-name { color: var(--ink); font-family: var(--marker); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+.save-item-meta { color: var(--muted); font-size: 13px; }
+.save-item-actions { display: flex; gap: 5px; margin-top: 6px; justify-content: flex-end; }
+body.paper .mini-btn { background: var(--card); border: 2px solid var(--ink); color: var(--ink); padding: 0 8px; font-size: 13px; font-family: var(--hand); clip-path: none; box-shadow: none; }
+body.paper .mini-btn.delete { border-color: var(--red); color: var(--red); }
+body.paper .mini-btn.delete:hover { background: var(--red); color: var(--card); }
+.no-saves { color: var(--muted); font-size: 15px; text-align: center; margin-top: 6px; }
+
+@media (max-width: 1400px) {
+  .tier-workspace { flex-direction: column; align-items: center; }
+  .sidebar-right { position: static; width: calc(100% - 32px); max-width: var(--tier-w); max-height: 300px; margin-top: 16px; border-left: 0; border-top: 6px solid var(--mustard); box-shadow: var(--shadow); }
+}
+@media (max-width: 1150px) {
+  #capture-area { width: calc(100% - 16px); padding: 6px; }
+  .tier-row { flex-direction: column; min-height: auto; }
+  .tier-header { width: auto; height: 48px; flex-direction: row; gap: 10px; }
+  .label { font-size: 26px; }
+  .items { min-height: 90px; }
+  .book { width: 72px; height: 72px; border-width: 3px; }
+}
+
+/* picked-up cover follows the pointer */
+#picked-ghost { position: fixed; width: 104px; height: 104px; object-fit: cover; border: 4px solid var(--card); pointer-events: none; z-index: 99999; opacity: .92;
+  transform: translate(-50%, -50%) rotate(-4deg); box-shadow: 0 10px 24px rgba(0,0,0,.4); display: none; }
+
+/* search results popover */
+#search-results { position: absolute; top: calc(100% + 8px); left: 0; right: 0; background: var(--card); padding: 10px; display: none; z-index: 9999; max-height: 320px; overflow: auto; box-shadow: 3px 6px 0 rgba(0,0,0,.2); border: 2px solid var(--ink); }
+#search-results .sr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; user-select: none; }
+#search-results .sr-title { font-family: var(--marker); font-size: 16px; }
+#search-results .sr-hint { font-size: 14px; color: var(--muted); }
+#search-results .sr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
+.sr-item { display: flex; flex-direction: column; gap: 4px; cursor: pointer; padding: 4px; border: 2px solid transparent; }
+.sr-item:hover { border-color: var(--ink); background: var(--paper); }
+.sr-thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: var(--kraft); }
+.sr-name { font-size: 13px; color: var(--ink); line-height: 1.1; max-height: 2.3em; overflow: hidden; }
+
+/* secure save dialog */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(30,24,18,.55); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 16px; }
+.modal-card { width: min(460px, 100%); background: var(--card); padding: 18px; box-shadow: 4px 8px 0 rgba(0,0,0,.3); }
+.modal-title { font-family: var(--marker); font-size: 24px; margin-bottom: 6px; }
+.modal-label { display: block; font-size: 15px; color: var(--muted); margin: 10px 0 4px; }
+.modal-input { width: 100%; box-sizing: border-box; background: var(--paper); color: var(--ink); border: 2px solid var(--ink); padding: 8px 10px; font-family: var(--hand); font-size: 17px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* Series the logged-in reader still has to rank (game link) */
+.to-rank { margin: 10px auto; max-width: 1100px; background: #F3EBDA; border: 2px dashed #E3A93B; padding: 10px 14px; font-size: 15px; line-height: 1.35; }
+.to-rank .names { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.to-rank .names button { background: #E3A93B; color: #2B2621; padding: 3px 9px; font: inherit; font-size: 14px; border: 0; cursor: pointer; box-shadow: 1px 2px 0 rgba(0,0,0,.2); }
+.to-rank .names button:hover { background: #2B2621; color: #FBF8F0; }
+.to-rank .note { color: #6b6257; font-size: 13px; }
+img.book.to-rank { outline: 4px solid #E3A93B; outline-offset: -4px; box-shadow: 0 0 10px rgba(227,169,59,.9); }

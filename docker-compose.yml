@@ -1,0 +1,46 @@
+# The Listening Dungeon: Docker Compose (Docker, Docker Desktop, Portainer stacks)
+#
+#   1. Copy .env.example to .env and fill it in (or use tools/setup-builder.html).
+#   2. docker compose up -d
+#   3. Open http://<this-machine>:8000
+#
+# Two containers: abs-stats reads your Audiobookshelf server; the game talks to abs-stats.
+
+services:
+  abs-stats:
+    image: ghcr.io/yxqzme2/listening-dungeon-abs-stats:latest
+    # build: ./abs-stats            # or build it yourself from this folder
+    container_name: listening-dungeon-abs-stats
+    environment:
+      - ABS_URL=${ABS_URL}
+      - ABS_TOKEN=${ABS_TOKEN}
+      - ABS_TOKENS=${ABS_TOKENS:-}
+      - ALLOWED_USERNAMES=${ALLOWED_USERS:-*}
+      - ENGINE_URL=http://listening-dungeon:8000
+      - TZ=${TZ:-UTC}
+    restart: unless-stopped
+    # No published port needed: the game reaches it on the internal network.
+    # Uncomment to poke at its API yourself:
+    # ports:
+    #   - "3000:3000"
+
+  listening-dungeon:
+    image: ghcr.io/yxqzme2/listening-dungeon:latest
+    # build: .
+    container_name: listening-dungeon
+    depends_on:
+      - abs-stats
+    ports:
+      - "${GAME_PORT:-8000}:8000"
+    volumes:
+      - ./data:/data           # the database, covers and settings live here: back it up
+    environment:
+      - ABSSTATS_BASE_URL=http://abs-stats:3000
+      - STATE_DB_PATH=/data/state.db
+      - TZ=${TZ:-UTC}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_SESSION_SECRET=${ADMIN_SESSION_SECRET:-}
+      - ALLOWED_USERS=${ALLOWED_USERS:-}
+      - USER_ALIASES=${USER_ALIASES:-}
+      - RADAR_CHECK_INTERVAL_HOURS=${RADAR_CHECK_INTERVAL_HOURS:-12}
+    restart: unless-stopped

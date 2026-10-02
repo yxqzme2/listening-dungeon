@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Armory · Dungeon Admin</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=2">
+    <link rel="stylesheet" href="/static/game/paper-admin.css?v=1">
+</head>
+<body>
+    <nav class="admin-nav"></nav>
+<script src="/static/game/admin-nav.js?v=1"></script>
+
+    <header>
+        <h1>Item Armory</h1>
+        <a href="/admin" class="nav-back">Admin home</a>
+    </header>
+
+    <div class="container">
+
+        <!-- Card 1: Item Properties -->
+        <div class="admin-card">
+            <h2 class="card-title">Item Properties</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="item_name" placeholder="e.g. Phoenix Down Vest">
+                </div>
+                <div class="form-group">
+                    <label>Slot</label>
+                    <select id="slot">
+                        <option value="Head">Head</option>
+                        <option value="Chest">Chest</option>
+                        <option value="Neck">Neck</option>
+                        <option value="Ring">Ring</option>
+                        <option value="Trinket">Trinket</option>
+                        <option value="Weapon">Weapon</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Rarity</label>
+                    <select id="rarity" onchange="updateBudget()">
+                        <option value="Common">Common (20 pts)</option>
+                        <option value="Uncommon">Uncommon (40 pts)</option>
+                        <option value="Rare">Rare (60 pts)</option>
+                        <option value="Epic">Epic (80 pts)</option>
+                        <option value="Legendary">Legendary (100 pts)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Series Tag</label>
+                    <input type="text" id="series_tag" placeholder="e.g. Red Rising">
+                </div>
+                <div class="form-group">
+                    <label>Icon Path</label>
+                    <div class="icon-input-row">
+                        <input type="text" id="icon" placeholder="/icons/..." oninput="updateIconPreview()">
+                        <button type="button" class="btn-icon-picker" onclick="openIconPicker()">Browse Icons</button>
+                    </div>
+                    <div class="hint">Choose from live `/data/icons` via picker or type path manually.</div>
+                    <img id="preview-icon" src="" alt="Select Icon">
+                </div>
+                <div class="form-group">
+                    <label>Special Ability
+                        <span style="font-size: 0.8em; color: gray; font-weight: normal;">(appearances only)</span>
+                    </label>
+                    <input type="text" id="special_ability" placeholder="None">
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Stat Allocation -->
+        <div class="admin-card">
+            <h2 class="card-title">Stat Allocation</h2>
+            <div class="stat-budget-row">
+                <span>Budget: <span id="current-pts">0</span> / <span id="target-pts">20</span> pts</span>
+                <span style="color: #555; font-size: 0.75rem;">STR + MAG + DEF + (HP ÷ 5) = total</span>
+            </div>
+            <div class="stat-grid">
+                <div class="form-group">
+                    <label>STR</label>
+                    <input type="number" id="str" value="0" min="0" oninput="calculatePoints()">
+                </div>
+                <div class="form-group">
+                    <label>MAG</label>
+                    <input type="number" id="mag" value="0" min="0" oninput="calculatePoints()">
+                </div>
+                <div class="form-group">
+                    <label>DEF</label>
+                    <input type="number" id="def" value="0" min="0" oninput="calculatePoints()">
+                </div>
+                <div class="form-group">
+                    <label>HP (x5)</label>
+                    <input type="number" id="hp" value="0" min="0" step="5" oninput="calculatePoints()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Flavor Text -->
+        <div class="admin-card">
+            <h2 class="card-title">Flavor Text</h2>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="flavor_text" rows="3" placeholder="Describe the item's history..."></textarea>
+            </div>
+        </div>
+
+        <!-- Card 4: Forge Preview -->
+        <div class="admin-card">
+            <h2 class="card-title">Forge Preview</h2>
+            <div class="loot-preview-title">Test result before writing to csv</div>
+            <div id="loot-test-preview" class="loot-preview-grid"></div>
+            <div id="preview-note" class="preview-note">Click Test after editing fields to generate a preview card.</div>
+        </div>
+
+        <!-- Actions Row -->
+        <div class="actions-row">
+            <button class="btn-test" type="button" onclick="testItem()">[ TEST ]</button>
+            <button class="btn-save" onclick="forgeItem()">[ COMMENCE FORGING ]</button>
+        </div>
+
+    </div>
+
+    <!-- Icon Modal (fixed overlay, outside container) -->
+    <div id="icon-modal" class="icon-modal hidden" onclick="handleIconModalBackdrop(event)">
+        <div class="icon-modal-panel">
+            <div class="icon-modal-head">
+                <strong>Icon Arsenal</strong>
+                <input type="text" id="icon-filter" placeholder="Filter icons..." oninput="renderIconGrid()">
+                <button type="button" class="btn-icon-picker" onclick="closeIconPicker()">Close</button>
+            </div>
+            <div id="icon-grid" class="icon-grid"></div>
+            <div id="icon-status" class="icon-status">Idle.</div>
+        </div>
+    </div>
+
+    <script>
+        const budgets = {
+            "Common": 20,
+            "Uncommon": 40,
+            "Rare": 60,
+            "Epic": 80,
+            "Legendary": 100
+        };
+
+        let iconCatalog = [];
+        let iconsLoaded = false;
+
+        function updateBudget() {
+            const rarity = document.getElementById('rarity').value;
+            document.getElementById('target-pts').textContent = budgets[rarity];
+            calculatePoints();
+        }
+
+        function calculatePoints() {
+            const str = parseInt(document.getElementById('str').value) || 0;
+            const mag = parseInt(document.getElementById('mag').value) || 0;
+            const def = parseInt(document.getElementById('def').value) || 0;
+            const hp = parseInt(document.getElementById('hp').value) || 0;
+
+            const total = str + mag + def + (hp / 5);
+            const display = document.getElementById('current-pts');
+            display.textContent = total;
+
+            const target = budgets[document.getElementById('rarity').value];
+            display.style.color = total > target ? '#ff0055' : (total === target ? '#00ff00' : '#888');
+        }
+
+        function normalizeIconPath(path) {
+            const raw = (path || '').trim();
+            if (!raw) return '';
+            if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+            if (raw.startsWith('/icons/')) return raw;
+            if (raw.startsWith('icons/')) return '/' + raw;
+            return '/icons/' + raw.replace(/^\/+/, '');
+        }
+
+        function updateIconPreview() {
+            const src = normalizeIconPath(document.getElementById('icon').value);
+            const img = document.getElementById('preview-icon');
+            if (!src) {
+                img.removeAttribute('src');
+                return;
+            }
+            img.src = src;
+            img.onerror = () => {
+                img.removeAttribute('src');
+            };
+        }
+
+        async function loadIcons() {
+            if (iconsLoaded) return;
+            const status = document.getElementById('icon-status');
+            status.textContent = 'Loading icons...';
+
+            const endpoints = [];
+            endpoints.push('/awards/api/icons');
+            endpoints.push('/api/icons');
+            let payload = null;
+            let lastErr = '';
+            let usedEndpoint = '';
+
+            for (const ep of endpoints) {
+                try {
+                    const response = await fetch(ep, { cache: 'no-store' });
+                    if (!response.ok) {
+                        lastErr = `${ep} -> HTTP ${response.status}`;
+                        continue;
+                    }
+
+                    const bodyText = await response.text();
+                    let data = null;
+                    try {
+                        data = JSON.parse(bodyText);
+                    } catch (_e) {
+                        lastErr = `${ep} -> invalid JSON`;
+                        continue;
+                    }
+
+                    if (Array.isArray(data)) {
+                        payload = { icons: data };
+                    } else if (data && Array.isArray(data.icons)) {
+                        payload = data;
+                    } else {
+                        lastErr = `${ep} -> unexpected payload`;
+                        continue;
+                    }
+
+                    usedEndpoint = ep;
+                    break;
+                } catch (e) {
+                    lastErr = `${ep} -> ${e.message}`;
+                }
+            }
+
+            iconCatalog = Array.isArray(payload?.icons) ? payload.icons : [];
+            iconsLoaded = true;
+
+            if (iconCatalog.length) {
+                status.textContent = `Loaded ${iconCatalog.length} icons via ${usedEndpoint}.`;
+            } else {
+                status.textContent = `No icons loaded. ${lastErr || 'No working endpoint.'}`;
+            }
+        }
+
+        function iconName(path) {
+            const idx = path.lastIndexOf('/');
+            return idx >= 0 ? path.slice(idx + 1) : path;
+        }
+
+        function renderIconGrid() {
+            const grid = document.getElementById('icon-grid');
+            const status = document.getElementById('icon-status');
+            const q = document.getElementById('icon-filter').value.trim().toLowerCase();
+            const list = iconCatalog.filter(p => p.toLowerCase().includes(q));
+
+            grid.innerHTML = '';
+            if (!list.length) {
+                status.textContent = iconCatalog.length ? 'No matches for that filter.' : status.textContent;
+                return;
+            }
+
+            const frag = document.createDocumentFragment();
+            for (const path of list) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'icon-card';
+                btn.title = path;
+                btn.onclick = () => selectIcon(path);
+
+                const img = document.createElement('img');
+                img.src = path;
+                img.alt = iconName(path);
+
+                const txt = document.createElement('span');
+                txt.textContent = iconName(path);
+
+                btn.appendChild(img);
+                btn.appendChild(txt);
+                frag.appendChild(btn);
+            }
+            grid.appendChild(frag);
+            status.textContent = `${list.length} shown${q ? ` (filtered from ${iconCatalog.length})` : ''}.`;
+        }
+
+        async function openIconPicker() {
+            document.getElementById('icon-modal').classList.remove('hidden');
+            await loadIcons();
+            renderIconGrid();
+            document.getElementById('icon-filter').focus();
+        }
+
+        function closeIconPicker() {
+            document.getElementById('icon-modal').classList.add('hidden');
+        }
+
+        function handleIconModalBackdrop(event) {
+            if (event.target.id === 'icon-modal') closeIconPicker();
+        }
+
+        function selectIcon(path) {
+            document.getElementById('icon').value = path;
+            updateIconPreview();
+            closeIconPicker();
+        }
+
+        function escapeHtml(v) {
+            return String(v || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function readItemFromForm() {
+            return {
+                item_name: document.getElementById('item_name').value.trim(),
+                slot: document.getElementById('slot').value,
+                rarity: document.getElementById('rarity').value,
+                series_tag: document.getElementById('series_tag').value.trim(),
+                str: parseInt(document.getElementById('str').value) || 0,
+                mag: parseInt(document.getElementById('mag').value) || 0,
+                def: parseInt(document.getElementById('def').value) || 0,
+                hp: parseInt(document.getElementById('hp').value) || 0,
+                icon: document.getElementById('icon').value.trim(),
+                special_ability: (document.getElementById('special_ability').value || '').trim(),
+                flavor_text: (document.getElementById('flavor_text').value || '').trim()
+            };
+        }
+
+        function buildLootCardHtml(item) {
+            const rarityClass = `rarity-${(item.rarity || 'Common').toLowerCase()}`;
+            const icon = normalizeIconPath(item.icon) || '/icons/chests.png';
+            const name = escapeHtml(item.item_name || 'Unnamed Artifact');
+            const slot = escapeHtml(item.slot || 'Unknown');
+            const rarity = escapeHtml(item.rarity || 'Common');
+            const series = escapeHtml(item.series_tag || 'Unknown');
+            let statsHtml = '';
+            if (item.str) statsHtml += `+${item.str} STR<br>`;
+            if (item.mag) statsHtml += `+${item.mag} MAG<br>`;
+            if (item.def) statsHtml += `+${item.def} DEF<br>`;
+            if (item.hp) statsHtml += `+${item.hp} HP<br>`;
+            if (!statsHtml) statsHtml = 'No stat bonuses';
+
+            const ability = (item.special_ability || '').trim();
+            const flavor = (item.flavor_text || '').trim();
+
+            return `
+                <div class="loot-card-wrap">
+                    <div class="loot-card ${rarityClass}">
+                        <img class="loot-icon" src="${icon}" alt="${name}" onerror="this.src='/icons/chests.png'">
+                        <div class="item-name">${name}</div>
+                        <div class="item-type-line">
+                            <span>${slot}</span>
+                            <span>${rarity}</span>
+                        </div>
+                        <div class="item-stats">${statsHtml}</div>
+                        ${ability ? `<div class="item-effect">Equip: ${escapeHtml(ability)}</div>` : ''}
+                        ${flavor ? `<div class="item-flavor">"${escapeHtml(flavor)}"</div>` : ''}
+                        <div class="item-source">Series: ${series}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function testItem() {
+            const item = readItemFromForm();
+            const target = budgets[item.rarity];
+            const current = item.str + item.mag + item.def + (item.hp / 5);
+            const preview = document.getElementById('loot-test-preview');
+            const previewNote = document.getElementById('preview-note');
+            preview.innerHTML = buildLootCardHtml(item);
+            if (previewNote) previewNote.style.display = 'none';
+
+            if (current > target) {
+                alert(`Preview generated. Warning: item is over budget (${current}/${target}).`);
+            }
+        }
+
+        async function forgeItem() {
+            const item = readItemFromForm();
+            item.special_ability = item.special_ability || "None";
+
+            if (!item.item_name) { alert("Item Name is mandatory."); return; }
+
+            const target = budgets[item.rarity];
+            const current = item.str + item.mag + item.def + (item.hp / 5);
+            if (current > target) {
+                if (!confirm(`Item is over budget (${current}/${target}). Proceed anyway?`)) return;
+            }
+
+            try {
+                const resp = await fetch('/awards/api/admin/loot/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
+                const data = await resp.json();
+                if (data.ok) {
+                    alert(`Item forged successfully with ID: ${data.id}`);
+                    window.location.href = '/admin';
+                } else {
+                    alert('Forging failed: ' + data.detail);
+                }
+            } catch (e) {
+                alert('Communication failure: ' + e.message);
+            }
+        }
+
+        updateBudget();
+        updateIconPreview();
+    </script>
+</body>
+</html>

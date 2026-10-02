@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>listening-dungeon</Name>
+  <Repository>ghcr.io/yxqzme2/listening-dungeon:latest</Repository>
+  <Registry>https://github.com/yxqzme2/listening-dungeon/pkgs/container/listening-dungeon</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/yxqzme2/listening-dungeon/issues</Support>
+  <Project>https://github.com/yxqzme2/listening-dungeon</Project>
+  <Overview>The Listening Dungeon: every audiobook your players finish in Audiobookshelf becomes a dungeon to crawl. Classes, gear, loot, an Arena, a December party boss, plus Tier Lists, Recommendations, Release Radar and book Requests.
+
+Install listening-dungeon-abs-stats first: this container gets everything through it.</Overview>
+  <Category>MediaApp:Books GameServers:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/yxqzme2/listening-dungeon/main/templates/unraid/listening-dungeon.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/yxqzme2/listening-dungeon/main/docs/images/icon.png</Icon>
+  <Config Name="Web port" Target="8000" Default="8000" Mode="tcp" Description="The port you open the game on." Type="Port" Display="always" Required="true" Mask="false">8000</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/listening-dungeon" Mode="rw" Description="The game's database, covers and settings. Back this up." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/listening-dungeon</Config>
+  <Config Name="abs-stats address" Target="ABSSTATS_BASE_URL" Default="http://YOUR-SERVER-IP:3000" Mode="" Description="Where this container reaches abs-stats. On the default bridge network use your server's IP and abs-stats' port. On a custom Docker network shared by both containers you can use http://listening-dungeon-abs-stats:3000." Type="Variable" Display="always" Required="true" Mask="false">http://YOUR-SERVER-IP:3000</Config>
+  <Config Name="Admin password" Target="ADMIN_PASSWORD" Default="" Mode="" Description="Password for /admin (monsters, loot, requests, Release Radar). Required: pick your own." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Admin session key" Target="ADMIN_SESSION_SECRET" Default="" Mode="" Description="Any long random text (40+ characters). Keeps admin logins working across restarts." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Players" Target="ALLOWED_USERS" Default="" Mode="" Description="Comma-separated Audiobookshelf usernames who can play. Leave empty for every ABS user." Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Display names" Target="USER_ALIASES" Default="" Mode="" Description="Optional friendlier names: absusername:Name,absusername2:Name 2" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Timezone" Target="TZ" Default="America/New_York" Mode="" Description="Your timezone. The Store restocks at midnight and the December boss's weeks follow it." Type="Variable" Display="always" Required="false" Mask="false">America/New_York</Config>
+  <Config Name="Database path" Target="STATE_DB_PATH" Default="/data/state.db" Mode="" Description="Leave as is." Type="Variable" Display="advanced" Required="false" Mask="false">/data/state.db</Config>
+  <Config Name="Release Radar check (hours)" Target="RADAR_CHECK_INTERVAL_HOURS" Default="12" Mode="" Description="How often Release Radar checks Audible for new books in your series." Type="Variable" Display="advanced" Required="false" Mask="false">12</Config>
+</Container>

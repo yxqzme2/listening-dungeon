@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Radar · Dungeon Admin</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=2">
+    <link rel="stylesheet" href="/static/game/paper-admin.css?v=1">
+</head>
+<body>
+
+<nav class="admin-nav"></nav>
+<script src="/static/game/admin-nav.js?v=1"></script>
+
+<header>
+    <h1>Release Radar</h1>
+    <a href="/radar">Public Radar page</a>
+</header>
+
+<div class="page-wrap">
+
+    <div class="toolbar">
+        <button class="btn btn-green" onclick="openAddModal()">+ Track Series</button>
+        <button class="btn" onclick="seedFromAbs()" id="btn-seed">&#128196; Sync from Library</button>
+        <button class="btn" onclick="manualCheck()" id="btn-check">&#8635; Check Now</button>
+    </div>
+
+    <div class="section-label">Tracked series</div>
+    <div class="tracked-panel">
+        <div id="tracked-list" class="tracked-list">
+            <span style="color:var(--text-muted);font-size:.8rem">Loading&hellip;</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- Add Series Modal -->
+<div class="modal-overlay" id="add-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Track a Series</h2>
+            <button class="modal-close" onclick="closeAddModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="search-row">
+                <input type="text" id="search-input" placeholder="Search Audible (e.g. Cradle Will Wight)" />
+                <button class="btn" onclick="doSearch()">Search</button>
+            </div>
+            <div id="modal-status" class="modal-status" style="display:none"></div>
+            <div id="candidate-list" class="candidate-list"></div>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+async function loadTracked() {
+    try {
+        const resp = await fetch('/radar/api/series');
+        const data = await resp.json();
+        renderTracked(data.series || []);
+    } catch (e) { console.error(e); }
+}
+
+function renderTracked(series) {
+    const container = document.getElementById('tracked-list');
+    if (!series.length) {
+        container.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem">No series tracked yet. Use &ldquo;+ Track Series&rdquo; or &ldquo;Sync from Library&rdquo; to get started.</span>';
+        return;
+    }
+    container.innerHTML = '';
+    series.forEach(s => {
+        const chip = document.createElement('div');
+        chip.className = 'tracked-chip';
+        const coverHtml = s.cover_url
+            ? `<img src="${escHtml(s.cover_url)}" alt="">`
+            : `<div style="width:40px;height:40px;background:#0a0a0a;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:1.2rem;border-radius:3px">&#127911;</div>`;
+
+        const statusHtml = buildSeriesStatus(s);
+
+        chip.innerHTML = `
+            ${coverHtml}
+            <div class="chip-content">
+                <div class="chip-header">
+                    <div>
+                        <div class="chip-name">${escHtml(s.series_name)}</div>
+                        ${s.author ? `<div class="chip-author">${escHtml(s.author)}</div>` : ''}
+                    </div>
+                </div>
+                <div class="chip-status">${statusHtml}</div>
+            </div>
+            <div class="chip-actions">
+                <button class="chip-check" onclick="checkOneSeries('${escAttr(s.series_asin)}', this)" title="Check this series now">CHECK</button>
+                <button class="chip-delete" title="Stop tracking" onclick="deleteSeries(${s.id}, this)">&#10005;</button>
+            </div>`;
+        container.appendChild(chip);
+    });
+}
+
+function buildSeriesStatus(s) {
+    const now = Math.floor(Date.now() / 1000);
+    const lastChecked = s.last_checked || 0;
+    const hoursSince = lastChecked ? Math.floor((now - lastChecked) / 3600) : null;
+
+    let timeStr = '';
+    if (hoursSince === null) {
+        timeStr = 'Never checked';
+    } else if (hoursSince === 0) {
+        timeStr = 'Just now';
+    } else if (hoursSince < 24) {
+        timeStr = `${hoursSince}h ago`;
+    } else {
+        const days = Math.floor(hoursSince / 24);
+        timeStr = `${days}d ago`;
+    }
+
+    let status = `<span style="color:var(--text-muted)">Last: ${timeStr}</span>`;
+
+    if (s.last_release_date && s.last_title) {
+        const today = new Date().toISOString().slice(0, 10);
+        const isUpcoming = s.last_release_date > today;
+        const badge = isUpcoming ? '<span class="status-badge status-found">UPCOMING</span>' : '<span class="status-badge status-found">FOUND</span>';
+        const dateDisplay = formatDateShort(s.last_release_date);
+        status += `<br>${badge} <strong>${escHtml(s.last_title)}</strong>`;
+        if (s.last_sequence) status += ` #${escHtml(s.last_sequence)}`;
+        status += ` on ${dateDisplay}`;
+    } else {
+        status += '<br><span class="status-badge status-no-new">NO RELEASES</span> No upcoming releases found';
+    }
+
+    return status;
+}
+
+function formatDateShort(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+async function checkOneSeries(seriesAsin, btn) {
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'CHECKING...';
+
+    try {
+        const resp = await fetch(`/radar/api/check/${encodeURIComponent(seriesAsin)}`, { method: 'POST' });
+        const data = await resp.json();
+
+        btn.textContent = originalText;
+
+        if (data.status === 'found') {
+            const bookStr = data.next_book.title + (data.next_book.sequence ? ` #${data.next_book.sequence}` : '');
+            const msg = data.is_new ? `Found: ${bookStr}` : `Confirmed: ${bookStr}`;
+            showToast(msg);
+        } else if (data.status === 'no_new_releases') {
+            showToast('No new releases for this series');
+        } else if (data.status === 'error') {
+            showToast(`Error: ${data.error}`);
+        }
+
+        // Log full response for debugging
+        if (data.debug) {
+            console.log(`[${seriesAsin}] Debug:`, data.debug);
+        }
+
+        // Reload series list to update timestamps
+        await loadTracked();
+    } catch (e) {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        console.error(e);
+    }
+}
+
+async function deleteSeries(id, btn) {
+    if (!confirm('Stop tracking this series?')) return;
+    try {
+        const resp = await fetch(`/radar/api/series/${id}`, { method: 'DELETE' });
+        if (resp.ok) {
+            btn.closest('.tracked-chip').remove();
+            const c = document.getElementById('tracked-list');
+            if (!c.querySelector('.tracked-chip'))
+                c.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem">No series tracked yet.</span>';
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function seedFromAbs() {
+    const btn = document.getElementById('btn-seed');
+    btn.disabled = true;
+    btn.innerHTML = `&#128196; Syncing&hellip;<span class="spinner"></span>`;
+    try {
+        const resp = await fetch('/radar/api/seed-from-abs', { method: 'POST' });
+        const data = await resp.json();
+        btn.innerHTML = `&#128196; Sync from Library`;
+        showToast(data.added > 0
+            ? `Added ${data.added} series.${data.unmatched > 0 ? ` ${data.unmatched} unmatched.` : ''}`
+            : `Up to date.${data.unmatched > 0 ? ` ${data.unmatched} unmatched.` : ''}`);
+        if (data.added > 0) await loadTracked();
+    } catch (e) { btn.innerHTML = `&#128196; Sync from Library`; console.error(e); }
+    btn.disabled = false;
+}
+
+async function manualCheck() {
+    const btn = document.getElementById('btn-check');
+    btn.disabled = true;
+    btn.innerHTML = `&#8635; Checking&hellip;<span class="spinner"></span>`;
+    try {
+        const resp = await fetch('/radar/api/check', { method: 'POST' });
+        const data = await resp.json();
+        btn.innerHTML = `&#8635; Check Now`;
+        showToast(data.new_releases > 0
+            ? `Found ${data.new_releases} new release${data.new_releases > 1 ? 's' : ''}!`
+            : 'All caught up.');
+    } catch (e) { btn.innerHTML = `&#8635; Check Now`; console.error(e); }
+    btn.disabled = false;
+}
+
+function openAddModal() {
+    document.getElementById('add-modal').classList.add('open');
+    document.getElementById('search-input').focus();
+}
+function closeAddModal() {
+    document.getElementById('add-modal').classList.remove('open');
+    document.getElementById('candidate-list').innerHTML = '';
+    document.getElementById('modal-status').style.display = 'none';
+    document.getElementById('search-input').value = '';
+}
+document.getElementById('add-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeAddModal();
+});
+document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+});
+
+async function doSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) return;
+    const status = document.getElementById('modal-status');
+    const list   = document.getElementById('candidate-list');
+    list.innerHTML = '';
+    status.className = 'modal-status';
+    status.style.display = '';
+    status.innerHTML = `Searching Audible&hellip;<span class="spinner"></span>`;
+    try {
+        const resp = await fetch(`/radar/api/search?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        const candidates = data.candidates || [];
+        if (!candidates.length) { status.textContent = 'No series found.'; return; }
+        status.style.display = 'none';
+        candidates.forEach(c => {
+            const row = document.createElement('div');
+            row.className = 'candidate-row';
+            row.innerHTML = `
+                <img src="${escHtml(c.cover_url || '')}" onerror="this.style.display='none'" alt="">
+                <div class="candidate-info">
+                    <div class="candidate-series">${escHtml(c.series_name)}</div>
+                    <div class="candidate-author">${escHtml(c.author)}</div>
+                </div>
+                <button class="candidate-add" onclick="addSeries(this,
+                    '${escAttr(c.series_asin)}','${escAttr(c.series_name)}',
+                    '${escAttr(c.author)}','${escAttr(c.cover_url || '')}')">+ Track</button>`;
+            list.appendChild(row);
+        });
+    } catch (e) {
+        status.className = 'modal-status error';
+        status.textContent = 'Search failed.';
+        console.error(e);
+    }
+}
+
+async function addSeries(btn, seriesAsin, seriesName, author, coverUrl) {
+    btn.disabled = true; btn.textContent = '…';
+    try {
+        const resp = await fetch('/radar/api/series', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ series_asin: seriesAsin, series_name: seriesName, author, cover_url: coverUrl }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            btn.textContent = '✓ Added';
+            btn.style.cssText = 'background:var(--grass);color:var(--card)';
+            await loadTracked();
+        } else { btn.textContent = 'Failed'; btn.disabled = false; }
+    } catch (e) { btn.textContent = 'Error'; btn.disabled = false; console.error(e); }
+}
+
+let _toastTimer;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+    return String(s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+loadTracked();
+</script>
+</body>
+</html>

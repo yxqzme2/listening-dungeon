@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Listening Dungeon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&family=Alfa+Slab+One&family=Abril+Fatface&family=Rubik+Mono+One&family=Ultra&display=swap">
+<style>
+/* The Listening Dungeon — paper-craft hub. One column on phones, two on desktop. */
+:root {
+  --paper: #EFE7D4; --card: #FBF8F0; --ink: #2B2621; --muted: #6E6457;
+  --red: #D6503E; --mustard: #E3A93B; --navy: #22305A; --sage: #9DB77E; --grass: #4F7D3B; --kraft: #C6A06F; --blue: #A8C6D8;
+  --hand: "Gochi Hand", "Comic Sans MS", cursive; --marker: "Permanent Marker", Impact, sans-serif;
+  --r-common: #8C857A; --r-uncommon: #4E9A55; --r-rare: #3F74B5; --r-epic: #8A4FB8; --r-legendary: #D97F12;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--hand); font-size: 19px;
+  background-image: radial-gradient(ellipse at center, transparent 55%, rgba(60,40,20,.18) 100%); background-attachment: fixed; }
+.grain { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .12; mix-blend-mode: multiply; z-index: 50; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--navy); outline-offset: 3px; }
+a { color: inherit; }
+h1, h2, h3 { font-family: var(--marker); font-weight: 400; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--card); font-size: 17px; padding: 8px 16px; max-width: calc(100% - 32px); }
+.pin-msg { min-height: 1.3em; color: var(--red); font-size: 17px; text-align: center; }
+.pin.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.empty { color: var(--muted); font-size: 17px; padding: 8px 0; }
+.mock-flag { position: fixed; right: 10px; bottom: 10px; z-index: 60; background: var(--ink); color: var(--card); font-size: 14px; padding: 4px 10px; border-radius: 3px; opacity: .85; }
+
+/* shared paper pieces */
+.torn { clip-path: polygon(5px 0, calc(100% - 4px) 0, 100% 22%, calc(100% - 5px) 50%, 100% 76%, calc(100% - 3px) 100%, 4px 100%, 0 76%, 6px 50%, 0 24%); }
+.tape-label { display: inline-block; background: var(--card); padding: 6px 18px; position: relative; filter: drop-shadow(2px 3px 2px rgba(0,0,0,.18)); transform: rotate(-1.2deg); }
+.tape-label::before, .tape-label::after { content: ""; position: absolute; top: -8px; width: 48px; height: 20px; background: rgba(226,212,168,.8); }
+.tape-label::before { left: -18px; transform: rotate(-28deg); } .tape-label::after { right: -18px; transform: rotate(24deg); }
+.stamp { display: inline-block; font-family: var(--marker); text-transform: uppercase; color: var(--card); background: var(--red); padding: 3px 12px; transform: rotate(-3deg);
+  clip-path: polygon(4px 0, 100% 3px, calc(100% - 3px) 100%, 0 calc(100% - 4px)); }
+.btn { background: var(--red); color: var(--card); font-family: var(--marker); font-size: 21px; padding: 12px 20px; min-height: 52px; box-shadow: 3px 5px 0 rgba(0,0,0,.25);
+  clip-path: polygon(3px 0, 100% 2px, calc(100% - 2px) 100%, 0 calc(100% - 3px)); transition: transform .08s; }
+.btn:active { transform: translateY(3px); }
+.sticker svg { overflow: visible; filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(3px 6px 4px rgba(0,0,0,.3)); }
+
+/* ransom title */
+.ransom { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ransom .row { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+.ransom .t { min-width: 1.05em; height: 1.35em; display: grid; place-items: center; padding: 0 .12em; box-shadow: 2px 4px 2px rgba(0,0,0,.25);
+  clip-path: polygon(3px 0, 100% 2px, calc(100% - 2px) 100%, 0 calc(100% - 3px)); animation: drop .45s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes drop { from { transform: scale(1.8) rotate(0); opacity: 0; } }
+.ransom .gap { width: .4em; }
+
+/* ── title screen ── */
+#title { min-height: 100vh; display: flex; flex-direction: column; }
+.scene { position: relative; height: 330px; overflow: hidden; }
+.scene svg.land { position: absolute; inset: 0; width: 100%; height: 100%; }
+.scene .crew { position: absolute; left: 0; right: 0; bottom: 64px; display: flex; justify-content: center; gap: clamp(4px, 3vw, 40px); }
+.scene .crew .sticker svg { height: clamp(96px, 26vw, 150px); width: auto; }
+.scene .crew .sticker:nth-child(odd) { animation: bob 2.6s ease-in-out infinite; }
+.scene .crew .sticker:nth-child(even) { animation: bob 2.6s ease-in-out -1.3s infinite; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.title-top { padding: 28px 16px 8px; text-align: center; font-size: clamp(30px, 8vw, 58px); }
+.who { background: var(--grass); padding-inline: 16px; padding-block: 18px 40px; flex: 1; }
+.who-inner { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.who h2 { color: var(--card); font-size: 28px; text-align: center; }
+.readers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }  /* minmax(0,…): a long 🎧 title can't widen the page */
+.reader { min-width: 0; background: var(--card); padding: 12px 10px; text-align: center; box-shadow: 3px 5px 0 rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 2px; align-items: center;
+  clip-path: polygon(3px 0, 100% 2px, calc(100% - 2px) 100%, 0 calc(100% - 3px)); }
+.reader:hover { transform: translateY(-2px); }
+.reader strong { font-family: var(--marker); font-weight: 400; font-size: 20px; }
+.reader span { font-size: 16px; color: var(--muted); }
+.reader b { color: var(--red); font-weight: 400; font-family: var(--marker); }
+.reader .rlvl { font-style: normal; font-size: 15px; color: var(--red); font-family: var(--marker); }
+.title-lib { align-self: center; margin-top: 6px; }
+.tl-card { max-width: 560px; width: min(560px, 100%); }
+.tl-card .library { margin: 12px 0; text-align: left; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.reader .now { margin-top: 6px; font-size: 14px; color: var(--ink); background: #F3EBDA; border: 1.5px dashed var(--muted); padding: 3px 8px; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.reader .now:hover { background: var(--mustard); }
+.nowbook { display: grid; grid-template-columns: 110px 1fr; gap: 14px; text-align: left; align-items: start; }
+.nowbook img { width: 110px; height: 110px; object-fit: cover; box-shadow: 3px 4px 0 rgba(0,0,0,.25); background: #E3DCC8; }
+.nowbook h3 { margin: 0; font-size: 20px; line-height: 1.15; }
+.nowbook .by { color: var(--muted); font-size: 15px; }
+.nowbook .pbar { height: 18px; background: #E3DCC8; border: 2px solid var(--ink); position: relative; margin: 8px 0 4px; }
+.nowbook .pbar i { position: absolute; inset: 0 auto 0 0; background: var(--red); }
+.nowbook .pbar b { position: relative; display: block; text-align: center; font-size: 13px; line-height: 14px; color: var(--ink); font-family: var(--marker); font-weight: 400; }
+.nowbook .meta { font-size: 14px; color: var(--muted); line-height: 1.35; }
+/* PIN */
+.pin { background: var(--card); padding: 18px; display: flex; flex-direction: column; gap: 14px; align-items: center; box-shadow: 3px 6px 0 rgba(0,0,0,.25); }
+.dots { display: flex; gap: 14px; }
+.dots i { width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--ink); }
+.dots i.on { background: var(--ink); }
+.keys { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; }
+.key { height: 60px; background: var(--paper); font-family: var(--marker); font-size: 26px; box-shadow: 2px 3px 0 rgba(0,0,0,.2); }
+.key:active { transform: translateY(2px); }
+
+/* ── hub ── */
+#hub { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 14px; flex-wrap: wrap; }
+.brand { font-family: var(--marker); font-size: 22px; }
+.brand small { font-family: var(--hand); font-size: 15px; color: var(--muted); display: block; margin-top: -4px; }
+nav { display: flex; gap: 6px; flex-wrap: wrap; }
+nav a { text-decoration: none; font-size: 17px; padding: 4px 12px; background: var(--card); box-shadow: 2px 3px 0 rgba(0,0,0,.12); }
+nav a[aria-current="page"] { background: var(--ink); color: var(--card); }
+@media (max-width: 420px) { nav a { font-size: 15px; padding: 4px 7px; } }
+.grid { display: grid; gap: 22px; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .grid { grid-template-columns: 380px 1fr; align-items: start; } .grid .wide { grid-column: 1 / -1; } }
+.col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.panel { background: var(--card); padding: 16px; box-shadow: 3px 5px 0 rgba(0,0,0,.14); position: relative; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.panel-head h2 { font-size: 23px; }
+.example { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1.5px dashed var(--muted); padding: 0 6px; }
+
+/* character */
+.char { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: end; }
+.char .sticker svg { height: 150px; width: auto; }
+.char .name { font-family: var(--marker); font-size: 22px; line-height: 1.1; }
+.char .cls { color: var(--red); font-size: 17px; }
+.xp { height: 12px; background: #DED5C2; margin-top: 8px; position: relative; }
+.xp i { position: absolute; inset: 0 auto 0 0; background: var(--mustard); }
+.xp-text { font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+.stats div { background: var(--paper); padding: 4px 0; font-size: 14px; line-height: 1.1; }
+.stats strong { display: block; font-family: var(--marker); font-weight: 400; font-size: 19px; }
+.gear { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 12px; }
+.gslot { aspect-ratio: 1; min-width: 0; overflow: hidden; background: #2B2621; border: 3px solid #5E574C; display: grid; place-items: center; font-size: 10px; color: #A69E90; }
+.gslot img { width: 88%; }
+
+/* dungeon shelf */
+.next { display: grid; grid-template-columns: 112px 1fr; gap: 16px; align-items: center; background: var(--paper); padding: 14px; margin-bottom: 14px; }
+.next img { width: 100%; aspect-ratio: 1; object-fit: cover; box-shadow: 0 6px 12px rgba(0,0,0,.25); transform: rotate(-3deg); border: 6px solid var(--card); }
+.next h3 { font-family: var(--hand); font-size: 23px; line-height: 1.1; }
+.next .btn { width: 100%; }
+@media (min-width: 560px) { .next { grid-template-columns: 150px 1fr; } .next .btn { width: auto; } }
+.next .meta { font-size: 16px; color: var(--muted); margin: 4px 0 10px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 14px; border: 2px solid var(--ink); border-radius: 999px; padding: 0 8px; background: var(--card); }
+.chip.loot { background: var(--mustard); border-color: var(--mustard); }
+.chip.big { background: var(--red); color: var(--card); border-color: var(--red); }
+.sort { display: flex; gap: 6px; }
+.sort button { font-size: 15px; padding: 2px 10px; border: 2px solid var(--ink); }
+.sort button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+.shelf { display: grid; grid-auto-flow: column; grid-auto-columns: 124px; gap: 14px; overflow-x: auto; padding: 6px 4px 14px; scroll-snap-type: x mandatory; }
+.book { scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.book .cv { position: relative; }
+.book img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 5px solid var(--card); box-shadow: 0 4px 8px rgba(0,0,0,.22); display: block; background: var(--kraft); }
+.book .badge { position: absolute; right: -6px; top: -8px; font-family: var(--marker); font-size: 12px; background: var(--mustard); padding: 1px 6px; transform: rotate(6deg); box-shadow: 1px 2px 0 rgba(0,0,0,.2); }
+.book .badge.two { background: var(--red); color: var(--card); }
+.book .badge.finale, .chip.finale { background: var(--r-epic); color: var(--card); border-color: var(--r-epic); }
+.book .t { font-size: 15px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.book .h { font-size: 13px; color: var(--muted); }
+
+/* boss */
+.boss { background: var(--navy); color: #E9EEF8; overflow: hidden; }
+.boss .panel-head h2 { color: var(--mustard); }
+.boss-body { display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: center; }
+.boss .boss-art svg { width: 110px; height: auto; }
+.boss-info { min-width: 0; }
+.boss-bar { height: 26px; background: #05070F; border: 2px solid #FBF8F0; position: relative; margin: 6px 0; }
+.boss-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #D6503E, #E3A93B); }
+.boss-bar b { position: relative; display: block; text-align: center; line-height: 22px; font-family: var(--marker); font-weight: 400; font-size: 15px; color: #FBF8F0; text-shadow: 0 1px 0 rgba(0,0,0,.7); }
+.boss-line { font-size: 16px; line-height: 1.25; margin: 2px 0 6px; color: #E9EEF8; }
+.boss-line b { color: var(--mustard); font-weight: 400; font-family: var(--marker); }
+.boss-more .btn { width: 100%; margin-top: 10px; }
+.boss-more .btn small { display: block; font-family: var(--hand); font-size: 14px; opacity: .9; }
+.boss-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; font-size: 14px; }
+.boss-chips span { background: rgba(255,255,255,.1); padding: 3px 8px; }
+.boss-chips button { background: var(--mustard); color: var(--ink); border: 0; padding: 3px 8px; font: inherit; cursor: pointer; }
+.boss h3 { font-family: var(--marker); font-weight: 400; font-size: 17px; color: var(--mustard); margin: 14px 0 2px; }
+.boss-board { list-style: none; margin: 0; padding: 0; font-size: 15px; }
+.boss-board li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed rgba(255,255,255,.2); padding: 3px 0; }
+.boss-board li.you { color: var(--mustard); }
+.boss-board .when { color: #9AA6C4; font-size: 13px; white-space: nowrap; }
+.banners { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.banner { background: rgba(255,255,255,.08); border-top: 4px solid #9AA6C4; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; line-height: 1.2; }
+.banner b { font-family: var(--marker); font-weight: 400; font-size: 15px; color: var(--card); }
+.banner.up { border-top-color: var(--mustard); background: rgba(227,169,59,.18); }
+.banner em { font-style: normal; margin-top: auto; }
+.banner em.raised { align-self: flex-start; background: var(--mustard); color: var(--ink); font-family: var(--marker); font-size: 13px; padding: 1px 7px; transform: rotate(-2deg); box-shadow: 2px 2px 0 rgba(0,0,0,.35); }
+.banner button { margin-top: auto; background: var(--mustard); color: var(--ink); border: 0; padding: 3px 6px; font: inherit; cursor: pointer; }
+.banner button:disabled { opacity: .45; cursor: default; }
+@media (max-width: 380px) { .banners { grid-template-columns: 1fr; } }
+.guide-card { max-width: 460px; text-align: left; }
+.guide-card h2 { text-align: center; font-size: 26px; }
+.guide-art { display: flex; justify-content: center; align-items: flex-end; gap: 10px; min-height: 120px; }
+.guide-art svg { max-height: 130px; width: auto; }
+.guide-text { font-size: 17px; line-height: 1.35; text-align: left; }
+.guide-text ul { margin: 6px 0 0; padding-left: 20px; }
+.guide-text li { margin: 3px 0; }
+.guide-dots { display: flex; justify-content: center; gap: 6px; }
+.guide-dots i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); }
+.guide-dots i.on { background: var(--red); border-color: var(--red); }
+.guide-skip { background: none; border: 0; color: var(--muted); text-decoration: underline; font: inherit; font-size: 15px; cursor: pointer; align-self: center; }
+#tier-chip a { display: block; margin-top: 10px; background: #F3EBDA; border: 2px dashed var(--mustard); color: var(--ink); text-decoration: none; padding: 7px 10px; font-size: 15px; line-height: 1.25; }
+#tier-chip a:hover { background: var(--mustard); }
+#tier-chip b { font-family: var(--marker); font-weight: 400; color: var(--red); }
+#notice-go { text-decoration: none; }
+.audio-ctl { position: fixed; right: 10px; bottom: 10px; z-index: 50; display: flex; gap: 6px; }
+.audio-ctl button { background: var(--card); color: var(--ink); border: 2px solid var(--ink); font-family: var(--hand); font-size: 14px; padding: 3px 9px; cursor: pointer; box-shadow: 2px 2px 0 rgba(0,0,0,.25); }
+.audio-ctl button[aria-pressed="true"] { background: var(--mustard); }
+@media (max-width: 600px) { .audio-ctl { right: 6px; bottom: 6px; } .audio-ctl button { font-size: 12px; padding: 2px 7px; } }
+.null-meter { background: #05070F; border: 2px dashed #6FE0FF; padding: 8px 10px; margin-top: 10px; font-size: 15px; }
+.null-meter .boss-bar i { background: #6FE0FF; }
+.countdown { display: flex; gap: 8px; margin: 0; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.countdown div { background: rgba(255,255,255,.1); padding: 4px 8px; text-align: center; min-width: 54px; }
+.countdown strong { display: block; font-family: var(--marker); font-weight: 400; font-size: 26px; color: var(--card); }
+.countdown span { font-size: 13px; }
+.boss p { font-size: 16px; line-height: 1.25; }
+
+/* feed */
+.feed { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.feed li { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 2px dotted #D8CFBC; }
+.feed li:last-child { border-bottom: 0; }
+.feed li.empty { display: block; border-bottom: 0; }
+.feed .av svg { height: 44px; width: auto; }
+.feed .txt { font-size: 17px; line-height: 1.2; }
+.feed .txt b { font-family: var(--marker); font-weight: 400; }
+.feed .when { font-size: 14px; color: var(--muted); white-space: nowrap; }
+.rare { color: var(--r-rare); } .epic { color: var(--r-epic); } .legendary { color: var(--r-legendary); }
+
+/* library */
+.library { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--paper); padding: 12px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; box-shadow: 2px 3px 0 rgba(0,0,0,.12); transition: transform .1s; }
+.tile:hover { transform: translateY(-2px) rotate(-.5deg); }
+.tile svg { width: 38px; height: 38px; }
+.tile strong { font-family: var(--marker); font-weight: 400; font-size: 18px; }
+.tile span { font-size: 15px; color: var(--muted); line-height: 1.15; }
+/* ── builder + class pick ── */
+.setup { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 48px; }
+.setup h1 { font-size: 30px; text-align: center; }
+.setup .sub { text-align: center; color: var(--muted); margin: 4px 0 16px; }
+.builder { display: grid; gap: 18px; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .builder { grid-template-columns: 340px 1fr; align-items: start; } .preview { top: 16px; } }
+.preview { background: #BCD4DD; position: sticky; top: 0; z-index: 5; height: 230px; overflow: hidden; box-shadow: 3px 5px 0 rgba(0,0,0,.18); }
+@media (min-width: 820px) { .preview { height: 340px; } .preview .fig svg { height: 260px !important; } }
+.preview .fig svg { height: 170px !important; }
+.preview .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: var(--grass); border-top: 10px solid var(--kraft); }
+.preview .fig { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); animation: breathe 2.4s ease-in-out infinite; transform-origin: bottom center; }
+.preview .fig svg { height: 250px; width: auto; }
+.preview .nameplate { position: absolute; top: 12px; left: 50%; transform: translateX(-50%) rotate(-2deg); }
+@keyframes breathe { 50% { transform: translateX(-50%) scaleY(1.02); } }
+.opts { display: flex; flex-direction: column; gap: 14px; }
+.opt { background: var(--card); padding: 10px 14px 12px; box-shadow: 2px 3px 0 rgba(0,0,0,.12); }
+.opt h3 { font-size: 17px; margin-bottom: 6px; }
+.choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.choice { font-size: 17px; padding: 4px 12px; border: 2px solid var(--ink); background: var(--card); min-height: 40px; }
+.choice[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+.choice:disabled { opacity: .35; cursor: not-allowed; border-style: dashed; }
+.swatch { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--card); box-shadow: 0 0 0 2px #B9B1A2; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--ink); }
+.split-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.split-actions .btn { width: 100%; }
+.split-actions.three { grid-template-columns: 1fr 1fr 1fr; }
+.split-actions.three .btn { font-size: 17px; padding-inline: 6px; }
+.bm-ribbon { position: relative; display: inline-grid; place-items: center; min-width: 46px; height: 54px; padding: 0 8px 10px; background: var(--navy); color: var(--card);
+  font-family: var(--marker); font-size: 19px; font-variant-numeric: tabular-nums; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); margin-top: -16px;
+  filter: drop-shadow(2px 3px 0 rgba(0,0,0,.2)); }
+.setup-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.btn.alt { background: var(--navy); }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: none; border: 2px solid var(--ink); }
+.classgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.clscard { background: var(--card); padding: 12px; display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: end; text-align: left; box-shadow: 2px 4px 0 rgba(0,0,0,.14); border: 3px solid transparent; }
+.clscard[aria-pressed="true"] { border-color: var(--red); }
+.clscard svg { height: 120px; width: auto; }
+.clscard .role { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--red); }
+.clscard h3 { font-size: 20px; }
+.clscard p { font-size: 15px; line-height: 1.2; }
+.clscard .new { font-size: 12px; background: var(--mustard); padding: 0 6px; margin-left: 4px; vertical-align: middle; font-family: var(--hand); }
+.edit-links { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 16px; }
+/* Safety net for Android: anything a few pixels too wide is cut off instead of zooming the whole page out. */
+html { overflow-x: clip; }
+.edit-links button { text-decoration: underline; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+<link rel="stylesheet" href="/static/game/dungeon.css?v=launch18">
+</head>
+<body>
+<svg class="grain" aria-hidden="true"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#g)"/></svg>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<!-- ═════════ TITLE / LOGIN ═════════ -->
+<main id="title">
+  <div class="title-top"><div class="ransom" id="ransom"></div></div>
+  <div class="scene" aria-hidden="true">
+    <svg class="land" viewBox="0 0 1200 330" preserveAspectRatio="xMidYMax slice">
+      <g transform="translate(1060 60)"><circle r="44" fill="#E3A93B" stroke="#FBF8F0" stroke-width="4"/><circle r="30" fill="#F2BE4F"/></g>
+      <g fill="#FBF8F0"><ellipse cx="220" cy="70" rx="56" ry="20"/><ellipse cx="200" cy="58" rx="28" ry="20"/><ellipse cx="240" cy="54" rx="30" ry="24"/>
+        <ellipse cx="760" cy="44" rx="46" ry="16"/><ellipse cx="780" cy="34" rx="24" ry="18"/></g>
+      <path d="M0 190 C 240 150, 420 210, 640 175 S 1000 150, 1200 185 L1200 330 L0 330 Z" fill="#B7C99A" stroke="#FBF8F0" stroke-width="4"/>
+      <!-- dungeon entrance -->
+      <g transform="translate(600 250)">
+        <path d="M-130 0 L-130 -120 Q-130 -190 0 -200 Q130 -190 130 -120 L130 0 Z" fill="#4A5268" stroke="#FBF8F0" stroke-width="5"/>
+        <path d="M-80 0 L-80 -100 Q-80 -150 0 -155 Q80 -150 80 -100 L80 0 Z" fill="#1E2233"/>
+        <g fill="#5A6279" stroke="#353B4D" stroke-width="3"><rect x="-126" y="-60" width="40" height="26" rx="4"/><rect x="86" y="-90" width="40" height="26" rx="4"/><rect x="-120" y="-120" width="34" height="24" rx="4"/><rect x="88" y="-40" width="38" height="24" rx="4"/></g>
+        <rect x="-150" y="-6" width="300" height="14" fill="#6E5A45"/>
+        <g transform="translate(-100 -150)"><rect x="-4" y="0" width="8" height="30" fill="#6B4A2E"/><path d="M0 -26 C-10 -12 -8 -2 0 0 C8 -2 10 -12 0 -26 Z" fill="#E3A93B"/></g>
+        <g transform="translate(100 -150)"><rect x="-4" y="0" width="8" height="30" fill="#6B4A2E"/><path d="M0 -26 C-10 -12 -8 -2 0 0 C8 -2 10 -12 0 -26 Z" fill="#E3A93B"/></g>
+      </g>
+      <path d="M0 240 C 300 215, 600 262, 900 236 S 1100 228, 1200 242 L1200 330 L0 330 Z" fill="#9DB77E" stroke="#FBF8F0" stroke-width="4"/>
+      <rect y="268" width="1200" height="30" fill="#C9A36B"/><rect y="296" width="1200" height="40" fill="#4F7D3B"/>
+    </svg>
+    <div class="crew" id="crew"></div>
+  </div>
+  <section class="who">
+    <div class="who-inner" id="who"></div>
+  </section>
+</main>
+
+<!-- ═════════ CHARACTER BUILDER ═════════ -->
+<main id="builder" class="setup" hidden>
+  <h1>Build your crawler</h1>
+  <p class="sub">Pick a look. Your class chooses your outfit and weapon next. You can change all of this later.</p>
+  <div class="builder">
+    <div class="preview"><span class="stamp nameplate" id="b-name"></span><div class="fig sticker" id="b-fig"></div><div class="ground"></div></div>
+    <div class="opts" id="b-opts"></div>
+  </div>
+  <div class="setup-actions" style="margin-top:16px"><button class="btn ghost" id="b-cancel" hidden>Cancel</button><button class="btn ghost" id="b-rand">Randomize</button><button class="btn" id="b-next">Next: pick a class</button></div>
+</main>
+
+<!-- ═════════ CLASS PICK ═════════ -->
+<main id="classpick" class="setup" hidden>
+  <h1>Pick your class</h1>
+  <p class="sub">This is how you fight. Switch any time between dungeons; your level and gear stay with you.</p>
+  <div class="classgrid" id="c-grid"></div>
+  <div class="setup-actions" style="margin-top:16px"><button class="btn ghost" id="c-back">Back to your look</button><button class="btn" id="c-go" disabled>Pick a class</button></div>
+</main>
+
+<!-- ═════════ DUNGEON RUN ═════════ -->
+<main id="dungeon" hidden></main>
+
+<!-- ═════════ BAG ═════════ -->
+<main id="bag" hidden>
+  <div class="screen-head"><h1>Your bag</h1><span class="bm-chip" id="bag-bm"></span></div>
+  <div id="bag-body"></div>
+  <button class="btn alt" id="bag-back">Back to the hub</button>
+</main>
+
+<!-- ═════════ SYSTEM STORE ═════════ -->
+<main id="store" hidden>
+  <div class="screen-head"><h1>The System Store</h1><span class="bm-chip" id="store-bm"></span></div>
+  <div id="store-body"></div>
+  <button class="btn alt" id="store-back">Back to the hub</button>
+</main>
+
+<!-- ═════════ WARDROBE ═════════ -->
+<main id="wardrobe" hidden>
+  <div class="screen-head"><h1>The Wardrobe</h1><span class="bm-chip" id="wardrobe-bm"></span></div>
+  <p style="color:var(--muted)">Looks only: nothing here changes your stats. Tap something to try it on, then buy it.</p>
+  <div class="wr-preview"><div class="wr-name" id="wr-name"></div><div class="fig sticker" id="wr-fig"></div></div>
+  <div id="wardrobe-body"></div>
+  <button class="btn alt" id="wardrobe-back">Back to the hub</button>
+</main>
+
+<!-- ═════════ PARTY ═════════ -->
+<main id="party" hidden>
+  <div class="screen-head"><h1 id="party-title">The Party</h1><button class="btn alt" id="party-back">Back to the hub</button></div>
+  <div id="party-body"></div>
+</main>
+
+<!-- ═════════ ARENA ═════════ -->
+<main id="arena" hidden>
+  <div class="screen-head"><h1>The Arena</h1><button class="btn alt" id="arena-back">Back to the hub</button></div>
+  <div id="arena-body"></div>
+</main>
+
+<!-- ═════════ BINDERY ═════════ -->
+<main id="bindery" hidden>
+  <div class="screen-head"><h1>The Forge</h1><span class="bm-chip" id="bindery-bm"></span></div>
+  <p style="color:var(--muted)">Permanent upgrades, paid in bookmarks. Every rank costs a little more than the last.</p>
+  <div class="items" id="bindery-body"></div>
+  <button class="btn alt" id="bindery-back">Back to the hub</button>
+</main>
+
+<div class="modal" id="suggest" hidden role="dialog" aria-modal="true" aria-labelledby="suggest-title">
+  <div class="modal-card" style="text-align:left">
+    <h2 id="suggest-title">Suggest a monster</h2>
+    <p style="font-size:16px;color:var(--muted)">Dream one up. If the Workshop builds it, you'll get a popup when it starts lurking in the dungeon.</p>
+    <label class="sg-field">Name<input id="sg-name" maxlength="40" placeholder="e.g. The Overdue Golem"></label>
+    <label class="sg-field">Where it lives<select id="sg-tier"><option value="0">Anywhere</option></select></label>
+    <label class="sg-field">What is it? What does it do?<textarea id="sg-idea" maxlength="400" placeholder="A golem made of overdue library slips. It fines you every turn."></textarea></label>
+    <p class="pin-msg" id="sg-msg" role="status"></p>
+    <div id="sg-mine"></div>
+    <div class="split-actions"><button class="btn ghost" id="sg-cancel">Close</button><button class="btn" id="sg-send">Send idea</button></div>
+  </div>
+</div>
+
+<div class="modal" id="guide" hidden role="dialog" aria-modal="true" aria-labelledby="guide-title">
+  <div class="modal-card guide-card">
+    <div class="guide-art" id="guide-art"></div>
+    <h2 id="guide-title"></h2>
+    <div class="guide-text" id="guide-text"></div>
+    <div class="guide-dots" id="guide-dots" aria-hidden="true"></div>
+    <div class="split-actions"><button class="btn alt" id="guide-back">Back</button><button class="btn" id="guide-next">Next</button></div>
+    <button class="guide-skip" id="guide-skip">Skip the tour</button>
+  </div>
+</div>
+
+<div class="modal" id="title-library" hidden role="dialog" aria-modal="true" aria-labelledby="tl-title">
+  <div class="modal-card tl-card"><h2 id="tl-title">The Library</h2><div class="library" id="tl-lib"></div><button class="btn" id="tl-ok">Close</button></div>
+</div>
+
+<div class="modal" id="nowreading" hidden role="dialog" aria-modal="true" aria-labelledby="nr-title">
+  <div class="modal-card"><h2 id="nr-title"></h2><div id="nr-body"></div><button class="btn" id="nr-ok">Close</button></div>
+</div>
+
+<div class="modal" id="notice" hidden role="dialog" aria-modal="true" aria-labelledby="notice-title">
+  <div class="modal-card"><div class="big" id="notice-big"></div><h2 id="notice-title"></h2><p id="notice-text"></p><a class="btn alt" id="notice-go" href="/tier?mine=1" hidden>Open my Tier List</a><button class="btn" id="notice-ok">Nice</button></div>
+</div>
+
+<!-- ═════════ HUB ═════════ -->
+<div id="hub" hidden>
+  <header class="topbar">
+    <div class="brand">The Listening Dungeon<small>Every book you finish is a dungeon.</small></div>
+    <nav aria-label="Main">
+      <a href="/" aria-current="page">Hub</a><a href="#party" id="nav-party">Party</a><a href="#arena" id="nav-arena">Arena</a><a href="#library">Library</a><a href="#" id="logout">Log out</a>
+    </nav>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="h-char">
+        <div class="panel-head"><h2 id="h-char">Your crawler</h2><span class="bm-ribbon" id="char-bm" title="Bookmarks"></span></div>
+        <div class="char">
+          <div class="sticker" id="char-art"></div>
+          <div>
+            <div class="name" id="char-name"></div>
+            <div class="cls" id="char-cls">Brawler · Level 4</div>
+            <div class="xp"><i id="char-xpbar" style="width:0%"></i></div>
+            <div class="xp-text" id="char-xp"></div>
+          </div>
+        </div>
+        <div class="stats" id="char-stats"></div>
+        <div class="gear" id="char-gear"></div>
+        <div class="split-actions three"><button class="btn alt" id="open-bag">Bag</button><button class="btn alt" id="open-bindery">Forge</button><button class="btn alt" id="open-store">Store</button></div>
+        <div class="edit-links"><button id="edit-look">Edit look</button><button id="edit-class">Change class</button><button id="my-badges">Badges</button><button id="open-wardrobe">Wardrobe</button><button id="open-guide">How to play</button></div>
+        <div id="tier-chip"></div>
+      </section>
+
+      <section class="panel boss" aria-labelledby="h-boss">
+        <div class="panel-head"><h2 id="h-boss">The Null Regent</h2></div>
+        <div id="boss-panel"><div class="boss-body"><div class="boss-art"></div><div class="boss-info"><div class="countdown" id="countdown" aria-label="Time until the Null Regent wakes"></div></div></div></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="h-shelf">
+        <div class="panel-head"><h2 id="h-shelf">Your dungeons</h2>
+          <div class="sort" role="group" aria-label="Sort dungeons"><button aria-pressed="true" data-sort="new">Newest</button><button aria-pressed="false" data-sort="long">Longest</button><button aria-pressed="false" data-sort="random">Random</button></div>
+        </div>
+        <div class="sort" role="tablist" aria-label="Which dungeons" style="margin-bottom:12px" id="shelf-tabs">
+          <button aria-pressed="true" data-status="waiting">Waiting <span id="n-waiting"></span></button>
+          <button aria-pressed="false" data-status="fallen">Fallen <span id="n-fallen"></span></button>
+          <button aria-pressed="false" data-status="cleared">Cleared <span id="n-cleared"></span></button>
+        </div>
+        <div class="next" id="next"></div>
+        <div class="shelf" id="shelf"></div>
+        <p style="font-size:15px;color:var(--muted)">Longer books drop better loot. Difficulty always matches your level.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="h-practice">
+        <div class="panel-head"><h2 id="h-practice">Training grounds</h2></div>
+        <p style="font-size:16px;color:var(--muted);margin-bottom:10px">A random practice dungeon. Try a class or a harder fight. No XP, loot, bookmarks or badges.</p>
+        <div class="practice-row"><span>Difficulty</span><div class="choices" id="pr-diff"></div></div>
+        <div class="practice-row"><span>Theme</span><div class="choices" id="pr-theme"></div></div>
+        <button class="btn alt" id="pr-go" style="width:100%;margin-top:10px">Start practice</button>
+        <div class="edit-links"><a href="/static/game/maker.html" style="color:var(--muted)">Build a monster</a><a href="/static/game/bestiary.html" style="color:var(--muted)">Monster Bestiary</a></div>
+      </section>
+      <section class="panel" aria-labelledby="h-feed">
+        <div class="panel-head"><h2 id="h-feed">Party feed</h2></div>
+        <ul class="feed" id="feed"></ul>
+      </section>
+    </div>
+
+    <section class="panel wide" id="library" aria-labelledby="h-lib">
+      <div class="panel-head"><h2 id="h-lib">The Library</h2></div>
+      <div class="library" id="lib"></div>
+    </section>
+  </div>
+</div>
+
+<div id="audio-ctl" class="audio-ctl" aria-label="Sound"></div>
+<script src="/static/js/crawler-art.js?v=launch1"></script>
+<script src="/static/js/monster-art.js?v=launch1"></script>
+<script src="/static/game/dungeon-themes.js?v=launch1"></script>
+<script src="/static/game/regent.js?v=launch1"></script>
+<script src="/static/game/music.js?v=launch3"></script>
+<script src="/static/game/dungeon.js?v=launch11"></script>
+<script src="/static/game/hub.js?v=launch32a"></script>
+</body>
+</html>

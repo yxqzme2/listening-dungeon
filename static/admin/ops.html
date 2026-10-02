@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Core · Dungeon Admin</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=2">
+    <link rel="stylesheet" href="/static/game/paper-admin.css?v=1">
+    <style>
+        /* System Core: a few maintenance tools and a log of what they did. */
+        .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+        .tool { background: var(--card); padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; }
+        .tool h3 { font-size: 20px; margin: 0; }
+        .tool p { margin: 0; color: var(--muted); font-size: 16px; flex: 1; }
+        .tool .when { font-size: 14px; color: var(--red); }
+        .log { background: var(--ink); color: #EDE6D6; font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 14px; height: 300px; overflow-y: auto; box-shadow: var(--shadow); white-space: pre-wrap; }
+        .log .err { color: #FF9B8A; }
+        .log-head { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 0 8px; }
+        .log-head h2 { font-size: 20px; margin: 0; }
+        #status-text { color: var(--muted); }
+        #status-text.busy { color: var(--red); }
+    </style>
+</head>
+<body>
+<nav class="admin-nav"></nav>
+<script src="/static/game/admin-nav.js?v=1"></script>
+<div class="container">
+    <div class="paper-head" style="padding-bottom:4px"><h1>System Core</h1><p>Maintenance tools. Each one says what it touches.</p></div>
+    <div class="tools">
+        <div class="tool">
+            <h3>Recommendation tags</h3>
+            <p>Looks up Audible's categories and descriptions for every tracked series. Feeds the Recommendations page and the dungeon looks.</p>
+            <span class="when">About 2–3 minutes. Don't run it back to back.</span>
+            <button class="btn-run" onclick="runTagBackfill(false, this)">Run Audible lookup</button>
+        </div>
+        <div class="tool">
+            <h3>Tags + Royal Road</h3>
+            <p>The same lookup, plus Royal Road tags for series it can match with confidence. Richer tags, slower.</p>
+            <span class="when">About 10–20 minutes. Once in a while is plenty.</span>
+            <button class="btn-run" onclick="runTagBackfill(true, this)">Run full lookup</button>
+        </div>
+        <div class="tool">
+            <h3>Generate new loot</h3>
+            <p>Makes 10 new gear pieces and adds them to the loot list. They can drop in dungeons right away.</p>
+            <span class="when">Instant.</span>
+            <button class="btn-run" onclick="runScript('generate_10', this)">Generate 10 items</button>
+        </div>
+        <div class="tool">
+            <h3>Repair broken icons</h3>
+            <p>Finds gear whose icon file is missing and gives it a working one.</p>
+            <span class="when">Instant.</span>
+            <button class="btn-run" onclick="runScript('fix_icons', this)">Fix icons</button>
+        </div>
+    </div>
+    <div class="log-head"><h2>Log</h2><span id="status-text">Ready</span></div>
+    <div class="log" id="console"></div>
+</div>
+<script>
+    const consoleEl = document.getElementById('console');
+    const statusEl = document.getElementById('status-text');
+    function log(msg, isError = false) {
+        const div = document.createElement('div');
+        if (isError) div.className = 'err';
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        consoleEl.appendChild(div);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+    function busy(btn, on, label) {
+        btn.disabled = on;
+        if (on) { btn.dataset.label = btn.textContent; btn.textContent = label || 'Running…'; }
+        else btn.textContent = btn.dataset.label;
+        statusEl.textContent = on ? 'Working…' : 'Ready';
+        statusEl.classList.toggle('busy', on);
+    }
+    async function runScript(scriptId, btn) {
+        if (!confirm(`Run "${btn.textContent.trim()}"?`)) return;
+        busy(btn, true);
+        log(`Starting ${scriptId}…`);
+        try {
+            const resp = await fetch(`/awards/api/admin/run-script/${scriptId}`, { method: 'POST' });
+            const data = await resp.json();
+            if (data.ok) { log('Done.'); if (data.stdout) log(data.stdout.trim()); }
+            else { log(`Error: ${data.error || data.detail || 'it failed.'}`, true); if (data.stderr) log(data.stderr.trim(), true); }
+        } catch (e) { log(`Couldn't reach the server: ${e.message}`, true); }
+        finally { busy(btn, false); }
+    }
+    async function runTagBackfill(royalroad, btn) {
+        const label = royalroad ? 'the full lookup (Audible + Royal Road, 10–20 min)' : 'the Audible lookup (2–3 min)';
+        if (!confirm(`Run ${label}? It asks outside sites once per tracked series.`)) return;
+        busy(btn, true);
+        log(`Starting tag lookup (Royal Road: ${royalroad ? 'yes' : 'no'})…`);
+        try {
+            const resp = await fetch(`/awards/api/admin/tags/backfill?royalroad=${royalroad}`, { method: 'POST' });
+            const data = await resp.json();
+            log(`Series checked: ${data.series_checked}. Audible tags +${data.audible_tags_added}. Keyword tags +${data.keyword_tags_added}. Descriptions: ${data.descriptions_stored}.`);
+            if (royalroad) log(`Royal Road: ${data.royalroad_matched}/${data.royalroad_checked} series matched, +${data.royalroad_tags_added} tags.`);
+            log(`Tags by source: ${JSON.stringify(data.source_counts)}`);
+        } catch (e) { log(`Lookup failed: ${e.message}`, true); }
+        finally { busy(btn, false); }
+    }
+</script>
+</body>
+</html>

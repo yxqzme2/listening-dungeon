@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monster Workshop · The Listening Dungeon</title>
+<link rel="stylesheet" href="/static/game/paper.css?v=1">
+<style>
+  /* Monster Workshop (admin) — build monsters from the same parts as the built-in ones. */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px 60px; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 0; }
+  .top .brand { font-family: var(--marker); font-size: 22px; text-decoration: none; }
+  .top nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .top nav a { text-decoration: none; font-size: 17px; padding: 4px 12px; background: var(--card); box-shadow: 2px 3px 0 rgba(0,0,0,.12); }
+  .bench { display: grid; gap: 18px; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .bench { grid-template-columns: 1fr 360px; align-items: start; } .preview { position: sticky; top: 12px; } }
+  .card { background: var(--card); padding: 16px; box-shadow: var(--shadow); }
+  .card h2 { font-size: 22px; margin: 0 0 10px; }
+  .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; }
+  label.f { display: flex; flex-direction: column; gap: 2px; font-size: 15px; color: var(--muted); }
+  label.f.wide { grid-column: 1 / -1; }
+  .f input[type=text], .f select, .f textarea { background: var(--paper); border: 2px solid var(--ink); padding: 5px 8px; font-size: 17px; color: var(--ink); }
+  .f textarea { min-height: 56px; resize: vertical; font-family: var(--hand); }
+  .f input[type=color] { width: 100%; height: 38px; border: 2px solid var(--ink); background: var(--paper); padding: 2px; }
+  .section { font-family: var(--marker); font-size: 17px; margin: 14px 0 6px; color: var(--ink); }
+  .moves { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .move { background: var(--navy); color: var(--card); padding: 2px 6px 2px 10px; font-size: 15px; display: inline-flex; align-items: center; gap: 4px; }
+  body.paper .move button { color: var(--card); background: none; border: 0; cursor: pointer; font-size: 17px; line-height: 1; }
+  .hint { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  body.paper .btn { background: var(--red); color: var(--card); font-family: var(--marker); border: 0; padding: 8px 18px; cursor: pointer; clip-path: var(--tilt); box-shadow: 2px 3px 0 rgba(0,0,0,.22); font-size: 17px; }
+  body.paper .btn.alt { background: var(--navy); }
+  body.paper .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+  body.paper .btn.small { font-size: 14px; padding: 3px 10px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .msg { font-size: 16px; min-height: 1.3em; }
+  .msg.err { color: var(--red); } .msg.ok { color: var(--grass); }
+  .stage { background: #BCD4DD; height: 280px; display: grid; place-items: end center; position: relative; overflow: hidden; margin-bottom: 10px; }
+  .stage::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: var(--grass); border-top: 8px solid var(--kraft); }
+  .stage .fig { position: relative; z-index: 1; margin-bottom: 20px; filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(3px 6px 4px rgba(0,0,0,.3)); }
+  .pname { font-family: var(--marker); font-size: 22px; text-align: center; }
+  .pstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-top: 8px; }
+  .pstats div { background: var(--paper); padding: 4px; font-size: 14px; }
+  .pstats strong { display: block; font-family: var(--marker); font-weight: 400; font-size: 19px; }
+  .banner { background: var(--mustard); padding: 8px 12px; margin-bottom: 10px; }
+  .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .mon { background: var(--paper); padding: 10px; display: grid; grid-template-columns: 70px 1fr; gap: 8px; align-items: center; }
+  .mon svg { height: 70px; width: auto; max-width: 70px; }
+  .mon strong { font-family: var(--marker); font-weight: 400; font-size: 16px; display: block; line-height: 1.1; }
+  .mon small { color: var(--muted); display: block; font-size: 14px; }
+  .mon .row { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; }
+  .live { color: var(--grass); } .off { color: var(--muted); }
+  .ideas { display: flex; flex-direction: column; gap: 8px; }
+  .idea { background: var(--paper); padding: 10px 12px; border-left: 6px solid var(--mustard); }
+  .idea.dismissed, .idea.live { opacity: .6; border-left-color: var(--muted); }
+  .idea strong { font-family: var(--marker); font-weight: 400; }
+  details summary { cursor: pointer; font-family: var(--marker); font-size: 18px; }
+</style>
+</head>
+<body class="paper">
+<nav class="admin-nav"></nav>
+<script src="/static/game/admin-nav.js?v=1"></script>
+<div class="wrap">
+  <div class="paper-head"><h1>Monster Workshop</h1></div>
+
+  <section class="card" style="margin-bottom:18px" aria-labelledby="h-ideas">
+    <h2 id="h-ideas">Built by players</h2>
+    <div class="ideas" id="ideas"></div>
+  </section>
+  <div class="bench">
+    <section class="card" aria-labelledby="h-form">
+      <h2 id="h-form">Build a monster</h2>
+      <div id="banner"></div>
+      <div class="fields">
+        <label class="f wide">Name<input type="text" id="f-name" maxlength="40" placeholder="e.g. The Overdue Golem"></label>
+        <label class="f">Tier (theme)<select id="f-tier"></select></label>
+        <label class="f">Role<select id="f-role"><option value="regular">Regular</option><option value="elite">Elite</option><option value="boss">Floor boss</option></select></label>
+        <label class="f">Style<select id="f-style"></select></label>
+        <label class="f wide">Book series (optional: it then only appears in that series' dungeons, at any level)<input type="text" id="f-series" maxlength="80" placeholder="e.g. Dungeon Crawler Carl"></label>
+      </div>
+      <div class="section">Moves (in order, then repeating)</div>
+      <div class="moves" id="f-moves"></div>
+      <div class="moves" style="margin-top:6px"><select id="f-addmove"></select><button class="btn small alt" id="f-add" type="button">Add move</button></div>
+      <p class="hint">Health, attack and XP come from the role and style, then grow with the player's level. That keeps every monster fair.</p>
+      <div class="section">Look</div>
+      <div class="fields" id="f-parts"></div>
+      <div class="fields" style="margin-top:10px">
+        <label class="f">Main color<input type="color" id="f-color" value="#8DB85A"></label>
+        <label class="f">Accent color<input type="color" id="f-accent" value="#8C6A3E"></label>
+        <label class="f">Size <span id="f-sizev"></span><input type="range" id="f-size" min="0.7" max="1.4" step="0.05" value="1"></label>
+      </div>
+      <div class="section">Lines (optional)</div>
+      <div class="fields">
+        <label class="f wide">When it appears<textarea id="f-appear" maxlength="160" placeholder="A Paper Golem rustles out of the returns bin."></textarea></label>
+        <label class="f wide">When it dies<textarea id="f-death" maxlength="160" placeholder="It tears neatly along the perforation."></textarea></label>
+      </div>
+      <div class="actions"><button class="btn" id="f-save" type="button">Save monster</button><button class="btn ghost" id="f-new" type="button">Start over</button><span class="msg" id="f-msg" role="status"></span></div>
+      <p class="hint">New monsters start switched off. Turn one on below and it joins every dungeon of its tier (or of its book series).</p>
+    </section>
+
+    <aside class="card preview" aria-label="Preview">
+      <div class="stage"><div class="fig" id="p-fig"></div></div>
+      <div class="pname" id="p-name">Unnamed monster</div>
+      <div class="pstats" id="p-stats"></div>
+      <label class="f" style="margin-top:8px">Stats at player level <select id="p-level"></select></label>
+    </aside>
+  </div>
+
+  <section class="card" style="margin-top:18px" aria-labelledby="h-import">
+    <h2 id="h-import">Import monsters</h2>
+    <p class="hint">Paste the JSON list another AI made from <b>docs/MONSTER_PROMPT.md</b>. Each monster is checked; bad ones are listed with the reason and skipped. The same name in the same series replaces the old one.</p>
+    <textarea id="imp-json" rows="8" style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:13px" placeholder='[{"name": "...", "series": "...", "tier": 2, "role": "regular", ...}]'></textarea>
+    <div class="actions"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="imp-on" checked> Switch them on right away</label>
+      <button class="btn" id="imp-go" type="button">Import</button>
+      <button class="btn alt" id="imp-fix" type="button" title="Match every monster's series to the library's exact name (fixes names cut off while copying)">Fix series names</button>
+      <span class="msg" id="imp-msg" role="status"></span></div>
+    <div id="imp-out" class="list" style="margin-top:8px"></div>
+  </section>
+
+
+  <section class="card" style="margin-top:18px" aria-labelledby="h-mine">
+    <h2 id="h-mine">Workshop monsters <small id="mine-count" style="font-size:15px;color:var(--muted)"></small></h2>
+    <input type="search" id="mine-filter" placeholder="Filter by name or series" style="width:100%;margin:6px 0 10px">
+    <div class="list" id="mine"></div>
+  </section>
+
+  <section class="card" style="margin-top:18px">
+    <details><summary>Built-in monsters (copy one as a starting point)</summary><div class="list" id="builtin" style="margin-top:10px"></div></details>
+  </section>
+</div>
+
+<script src="/static/js/monster-art.js?v=launch1"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let W = null;             // workshop data from the server
+  let editing = null;       // id of the monster being edited
+  let suggestionId = null;  // idea being built
+  let moves = ["attack", "attack", "heavy"];
+  const PART_LABEL = { body: "Body", head: "Head", eyes: "Eyes", horns: "Horns", teeth: "Teeth", item: "Held item", extra: "Extra" };
+  let kept = {};            // imported extras the form doesn't edit (move names, battle lines)
+
+  async function api(path, opts = {}) {
+    const res = await fetch("/api/game" + path, { method: opts.method || "GET", credentials: "same-origin",
+      headers: opts.body ? { "Content-Type": "application/json" } : {}, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { location.href = "/admin/login?next=/admin/monsters"; throw new Error("Log in again."); }
+    if (!res.ok) throw new Error(data.detail || "Something went wrong.");
+    return data;
+  }
+  function msg(text, ok) { const m = $("f-msg"); m.textContent = text; m.className = "msg " + (ok ? "ok" : "err"); }
+
+  function art() {
+    const a = { color: $("f-color").value, accent: $("f-accent").value, size: Number($("f-size").value) };
+    for (const p of Object.keys(PART_LABEL)) a[p] = $("f-" + p).value;
+    return a;
+  }
+  function current() {
+    return { ...(editing ? { id: editing } : {}), name: $("f-name").value, tier: Number($("f-tier").value), role: $("f-role").value,
+      style: $("f-style").value, moves, art: art(), appear: $("f-appear").value, death: $("f-death").value, series: $("f-series").value, ...kept };
+  }
+  function statsFor(role, style) {
+    const b = W.roles[role], s = W.styles[style];
+    return { hp: Math.round(b.hp * s.hp), atk: Math.round(b.atk * s.atk), xp: b.xp };
+  }
+  function preview() {
+    const m = current();
+    $("p-fig").innerHTML = MonsterArt.render(m.art, { height: m.role === "boss" ? 230 : m.role === "elite" ? 190 : 165 });
+    $("p-name").textContent = m.name.trim() || "Unnamed monster";
+    const st = statsFor(m.role, m.style), L = Number($("p-level").value), sc = W.enemy_scale[L];
+    $("p-stats").innerHTML = [["Health", st.hp * sc.hp], ["Attack", st.atk * sc.atk], ["XP", st.xp * sc.xp]]
+      .map(([k, v]) => `<div><strong>${Math.round(v)}</strong>${k}</div>`).join("");
+    $("f-sizev").textContent = `(${Number($("f-size").value).toFixed(2)}×)`;
+    $("f-moves").innerHTML = moves.map((mv, i) => `<span class="move">${esc(W.moves[mv].split(" (")[0])}<button type="button" data-i="${i}" aria-label="Remove">×</button></span>`).join("")
+      || '<span class="hint">No moves yet.</span>';
+    $("f-moves").querySelectorAll("button").forEach((b) => b.onclick = () => { moves.splice(Number(b.dataset.i), 1); preview(); });
+  }
+  function fill(m) {
+    $("f-name").value = m.name || ""; $("f-tier").value = m.tier || 1; $("f-role").value = m.role || "regular"; $("f-style").value = m.style || "balanced";
+    moves = [...(m.moves || ["attack", "attack", "heavy"])];
+    $("f-series").value = m.series || "";
+    kept = { move_names: m.move_names || {}, barks: m.barks || [] };
+    const a = m.art || {};
+    for (const p of Object.keys(PART_LABEL)) $("f-" + p).value = a[p] || (W.parts[p].includes("none") ? "none" : W.parts[p][0]);
+    $("f-color").value = a.color || "#8DB85A"; $("f-accent").value = a.accent || "#8C6A3E"; $("f-size").value = a.size || 1;
+    $("f-appear").value = m.appear || ""; $("f-death").value = m.death || "";
+    $("f-save").textContent = editing ? "Save changes" : "Save monster";
+    $("banner").innerHTML = suggestionId ? `<div class="banner">Building <b>${esc(W.suggestions.find((s) => s.id === suggestionId)?.username.toUpperCase())}</b>'s idea. They'll get a popup when you switch it on.</div>`
+      : editing ? `<div class="banner">Editing <b>${esc(m.name)}</b>.</div>` : "";
+    preview();
+  }
+  function reset() { editing = null; suggestionId = null; fill({ tier: 1, role: "regular", style: "balanced", art: { body: "humanoid", head: "round", eyes: "two" } }); msg("", true); }
+
+  function drawLists() {
+    const tierName = (t) => W.tiers[t] || "Any theme";
+    const built = W.suggestions.filter((s) => s.monster), ideas = W.suggestions.filter((s) => !s.monster);
+    const waiting = built.filter((s) => s.status === "new" || s.status === "building").length;
+    $("h-ideas").textContent = waiting ? `Built by players (${waiting} waiting)` : "Built by players";
+    $("ideas").innerHTML = (built.length ? `<div class="list">${built.map((s) => `<div class="mon idea ${s.status}">${MonsterArt.render(s.monster.art, { height: 70 })}
+        <div><strong>${esc(s.monster.name)}</strong><small>by ${esc(s.username.toUpperCase())} · ${s.monster.series ? esc(s.monster.series) : esc(tierName(s.monster.tier))} · ${s.monster.role} · ${s.monster.style}</small>
+          <small>${esc(s.monster.moves.map((mv) => (s.monster.move_names || {})[mv] || mv).join(", "))}</small><small><i>${esc(s.status === "new" ? "waiting" : s.status)}</i></small></div>
+        <div class="row">${s.status === "new" || s.status === "building" ? `<button class="btn small" data-approve="${s.id}">Approve</button><button class="btn small alt" data-buildm="${s.id}">Edit first</button><button class="btn small ghost" data-dismiss="${s.id}">Turn down</button>` : ""}
+          ${s.status === "dismissed" ? `<button class="btn small ghost" data-restore="${s.id}">Restore</button>` : ""}</div></div>`).join("")}</div>`
+      : '<p class="hint">Nothing yet. Players build monsters on the Monster Maker page (Training grounds → Build a monster); they land here for you to approve.</p>')
+      + (ideas.length ? `<details style="margin-top:10px"><summary>Older written suggestions (${ideas.length})</summary><div class="ideas" style="margin-top:8px">${ideas.map((s) => `<div class="idea ${s.status}">
+        <strong>${esc(s.name)}</strong> · from ${esc(s.username.toUpperCase())} · ${esc(s.tier ? tierName(s.tier) : "any theme")} · <i>${esc(s.status)}</i>
+        <div>${esc(s.idea)}</div>
+        <div class="actions" style="margin-top:6px">${s.status === "new" ? `<button class="btn small" data-build="${s.id}">Build this</button><button class="btn small ghost" data-dismiss="${s.id}">Dismiss</button>` : ""}
+          ${s.status === "dismissed" ? `<button class="btn small ghost" data-restore="${s.id}">Restore</button>` : ""}</div></div>`).join("")}</div></details>` : "");
+    $("ideas").querySelectorAll("[data-approve]").forEach((b) => b.onclick = async () => {
+      try { const r = await api(`/admin/suggestions/${b.dataset.approve}/approve`, { method: "POST" }); msg(`${r.monster.name} is in the dungeons. Its maker gets a popup.`, true); load(); }
+      catch (e) { msg(e.message); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    });
+    $("ideas").querySelectorAll("[data-buildm]").forEach((b) => b.onclick = () => {
+      const s = W.suggestions.find((x) => x.id === Number(b.dataset.buildm));
+      editing = null; suggestionId = s.id; fill({ ...s.monster, id: undefined });
+      msg(`Touch up ${s.monster.name}, Save, then Switch it on below to send it live.`, true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    $("ideas").querySelectorAll("[data-build]").forEach((b) => b.onclick = () => {
+      const s = W.suggestions.find((x) => x.id === Number(b.dataset.build));
+      editing = null; suggestionId = s.id;
+      fill({ name: s.name, tier: s.tier || 1, role: "regular", style: "balanced", appear: "", art: { body: "humanoid", head: "round", eyes: "two" } });
+      $("f-appear").placeholder = s.idea.slice(0, 150);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    $("ideas").querySelectorAll("[data-dismiss],[data-restore]").forEach((b) => b.onclick = async () => {
+      await api(`/admin/suggestions/${b.dataset.dismiss || b.dataset.restore}`, { method: "POST", body: { status: b.dataset.dismiss ? "dismissed" : "new" } });
+      load();
+    });
+
+    const q = ($("mine-filter").value || "").toLowerCase();
+    const shown = W.custom.filter((m) => !q || m.name.toLowerCase().includes(q) || (m.series || "").toLowerCase().includes(q));
+    $("mine-count").textContent = `${W.custom.filter((m) => m.enabled).length} on · ${W.custom.length} total`;
+    $("mine").innerHTML = shown.length ? shown.map((m) => `<div class="mon">${MonsterArt.render(m.art, { height: 70 })}
+        <div><strong>${esc(m.name)}</strong><small>${m.series ? `${esc(m.series)} · ` : `${esc(tierName(m.tier))} · `}${m.role} · ${m.style}</small>
+          <small class="${m.enabled ? "live" : "off"}">${m.enabled ? "In the dungeon" : "Switched off"}</small></div>
+        <div class="row"><button class="btn small ${m.enabled ? "ghost" : ""}" data-toggle="${esc(m.id)}">${m.enabled ? "Switch off" : "Switch on"}</button>
+          <button class="btn small alt" data-edit="${esc(m.id)}">Edit</button><button class="btn small ghost" data-del="${esc(m.id)}">Delete</button></div></div>`).join("")
+      : '<p class="hint">Nothing built yet.</p>';
+    $("mine").querySelectorAll("[data-toggle]").forEach((b) => b.onclick = async () => {
+      const m = W.custom.find((x) => x.id === b.dataset.toggle);
+      await api(`/admin/monsters/${encodeURIComponent(m.id)}/enabled`, { method: "POST", body: { enabled: !m.enabled } });
+      load();
+    });
+    $("mine").querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => {
+      const m = W.custom.find((x) => x.id === b.dataset.edit);
+      editing = m.id; suggestionId = null; fill(m); window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    $("mine").querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+      if (!confirm("Delete this monster for good?")) return;
+      await api(`/admin/monsters/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE" });
+      if (editing === b.dataset.del) reset();
+      load();
+    });
+
+    $("builtin").innerHTML = W.built_in.filter((m) => m.art).map((m) => `<div class="mon">${MonsterArt.render(m.art, { height: 70 })}
+        <div><strong>${esc(m.name)}</strong><small>${esc(tierName(m.tier))} · ${m.role} · ${m.style}</small></div>
+        <div class="row"><button class="btn small alt" data-copy="${esc(m.id)}">Copy as a start</button></div></div>`).join("");
+    $("builtin").querySelectorAll("[data-copy]").forEach((b) => b.onclick = () => {
+      const m = W.built_in.find((x) => x.id === b.dataset.copy);
+      editing = null; suggestionId = null; fill({ ...m, name: "" }); window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  async function load() {
+    W = await api("/admin/monsters");
+    drawLists();
+  }
+  async function init() {
+    W = await api("/admin/monsters");
+    $("f-tier").innerHTML = Object.entries(W.tiers).map(([t, n]) => `<option value="${t}">${t}: ${esc(n)}</option>`).join("");
+    $("f-style").innerHTML = Object.entries(W.styles).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
+    $("f-addmove").innerHTML = Object.entries(W.moves).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+    $("f-parts").innerHTML = Object.entries(PART_LABEL).map(([p, label]) => `<label class="f">${label}<select id="f-${p}">${W.parts[p].map((v) => `<option>${v}</option>`).join("")}</select></label>`).join("");
+    $("p-level").innerHTML = Object.keys(W.enemy_scale).map((L) => `<option value="${L}">${L}</option>`).join("");
+    document.querySelectorAll("#f-parts select, #f-tier, #f-role, #f-style, #f-color, #f-accent, #f-size, #f-name, #p-level").forEach((el) => el.addEventListener("input", preview));
+    $("f-add").onclick = () => { if (moves.length >= 8) return msg("8 moves at most."); moves.push($("f-addmove").value); preview(); };
+    $("f-new").onclick = reset;
+    $("mine-filter").addEventListener("input", drawLists);
+    $("imp-fix").onclick = async () => {
+      $("imp-msg").textContent = "Checking every monster's series…"; $("imp-msg").className = "msg";
+      try {
+        const r = await api("/admin/monsters/repair-series", { method: "POST" });
+        $("imp-msg").textContent = `Fixed ${r.fixed.length} monster${r.fixed.length === 1 ? "" : "s"}. ${r.unmatched.length ? `${r.unmatched.length} still don't match a series: fix or delete them below.` : "Every series matches the library."}`;
+        $("imp-msg").className = r.unmatched.length ? "msg err" : "msg ok";
+        const pairs = [...new Map(r.fixed.map((f) => [f.from, f.to])).entries()];
+        $("imp-out").innerHTML = pairs.map(([a, b]) => `<p class="msg ok">${esc(a)} → ${esc(b)}</p>`).join("")
+          + r.unmatched.map((u) => `<p class="msg err" data-row="${esc(u.id)}">${esc(u.name)}: ${esc(u.why)}
+              <button class="btn small alt" type="button" data-fix-edit="${esc(u.id)}">Edit</button>
+              <button class="btn small ghost" type="button" data-fix-del="${esc(u.id)}">Delete</button></p>`).join("");
+        await load();
+        $("imp-out").querySelectorAll("[data-fix-edit]").forEach((b) => b.onclick = () => {
+          const m = W.custom.find((x) => x.id === b.dataset.fixEdit);
+          if (!m) return;
+          editing = m.id; suggestionId = null; fill(m);
+          msg(`Fix the book series for ${m.name} (use the exact name from docs/MONSTER_SERIES.md), then Save changes.`, true);
+          window.scrollTo({ top: 0, behavior: "smooth" }); $("f-series").focus();
+        });
+        $("imp-out").querySelectorAll("[data-fix-del]").forEach((b) => b.onclick = async () => {
+          if (!confirm("Delete this monster for good?")) return;
+          await api(`/admin/monsters/${encodeURIComponent(b.dataset.fixDel)}`, { method: "DELETE" });
+          b.closest("[data-row]").remove();
+          if (editing === b.dataset.fixDel) reset();
+          await load();
+        });
+      } catch (e) { $("imp-msg").textContent = e.message; $("imp-msg").className = "msg err"; }
+    };
+    $("imp-go").onclick = async () => {
+      let items;
+      const raw = $("imp-json").value, a = raw.indexOf("["), b = raw.lastIndexOf("]");  // ignore any chatter around the list
+      try { items = JSON.parse(a >= 0 && b > a ? raw.slice(a, b + 1) : raw.trim()); } catch (e) { $("imp-msg").textContent = "That isn't valid JSON: " + e.message; $("imp-msg").className = "msg err"; return; }
+      if (!Array.isArray(items)) items = items.monsters || [items];
+      $("imp-msg").textContent = `Importing ${items.length}…`; $("imp-msg").className = "msg";
+      try {
+        const res = await api("/admin/monsters/import", { method: "POST", body: { monsters: items, enable: $("imp-on").checked } });
+        $("imp-msg").textContent = `Added or updated ${res.added} of ${items.length}.`; $("imp-msg").className = "msg ok";
+        $("imp-out").innerHTML = res.results.filter((r) => !r.ok).map((r) => `<p class="msg err">${esc(r.name)}: ${esc(r.error)}</p>`).join("")
+          + res.results.filter((r) => r.ok && r.note).map((r) => `<p class="msg ok">${esc(r.name)}: ${esc(r.note)}</p>`).join("");
+        await load();
+      } catch (e) { $("imp-msg").textContent = e.message; $("imp-msg").className = "msg err"; }
+    };
+    $("f-save").onclick = async () => {
+      try {
+        const res = await api("/admin/monsters", { method: "POST", body: { monster: current(), suggestion_id: suggestionId } });
+        editing = res.monster.id; suggestionId = null;
+        msg(`Saved ${res.monster.name}.`, true); await load(); fill(res.monster);
+      } catch (e) { msg(e.message); }
+    };
+    reset(); drawLists();
+  }
+  init().catch((e) => { document.querySelector(".wrap").insertAdjacentHTML("beforeend", `<p class="msg err">${esc(e.message)}</p>`); });
+})();
+</script>
+</body>
+</html>

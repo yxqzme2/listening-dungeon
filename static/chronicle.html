@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronicle · The Listening Dungeon</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=1">
+    <link rel="stylesheet" href="/static/chronicle.css?v=2">
+</head>
+<body>
+
+<nav class="nav-bar"></nav>
+<script src="/static/game/paper-nav.js?v=1"></script>
+
+<div class="chronicle-page">
+
+    <div class="paper-head">
+        <h1>The Chronicle</h1>
+        <p>Every book finished, every series completed. The permanent record.</p>
+    </div>
+
+    <div id="user-tabs" class="user-tabs">
+        <div class="loader-inline">Summoning records…</div>
+    </div>
+
+    <div id="stats-banner" class="stats-banner" style="display:none"></div>
+
+    <div class="controls-row" id="controls-row" style="display:none">
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="all"        onclick="setFilter('all',this)">All Entries</button>
+            <button class="filter-btn"         data-filter="campaigns"  onclick="setFilter('campaigns',this)">Campaigns</button>
+            <button class="filter-btn"         data-filter="books"      onclick="setFilter('books',this)">Books</button>
+        </div>
+        <div id="year-filters" class="year-group"></div>
+    </div>
+
+    <div id="chronicle-feed" class="chronicle-feed">
+        <div class="loader">Consulting the archives…</div>
+    </div>
+
+</div>
+
+<script src="/static/js/crawler-art.js?v=launch1"></script>
+<script src="/static/chronicle.js?v=3"></script>
+</body>
+</html>

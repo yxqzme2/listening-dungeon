@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stats · The Listening Dungeon</title>
+  <link rel="stylesheet" href="/static/game/paper.css?v=1">
+  <style>
+    /* Stats — paper-craft theme (tokens in /static/game/paper.css) */
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px 60px; }
+    .wrap > header { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 16px 0 22px; }
+    .wrap > header .title { display: flex; flex-direction: column; align-items: center; }
+    .pill { background: var(--navy); color: var(--card); font-size: 15px; padding: 2px 14px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 22px; }
+
+    .userCard { background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+    .userTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: var(--paper); border-bottom: 2px dotted var(--line); flex-wrap: wrap; }
+    .userName { display: flex; flex-direction: column; gap: 2px; min-width: 180px; }
+    .userName .u { font-family: var(--marker); font-size: 26px; color: var(--ink); text-transform: uppercase; }
+    .userName .meta { color: var(--muted); font-size: 15px; }
+    .kpis { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .kpi { background: var(--card); padding: 8px 12px; min-width: 130px; box-shadow: 2px 3px 0 rgba(0,0,0,.1); text-align: center; }
+    .kpi:nth-child(1) { transform: rotate(-1deg); } .kpi:nth-child(3) { transform: rotate(1deg); }
+    .kpi .label { color: var(--red); font-size: 14px; }
+    .kpi .value { font-family: var(--marker); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .kpi .small { color: var(--muted); font-size: 13px; }
+
+    .userBody { padding: 14px 16px 18px; display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 900px) { .userBody { grid-template-columns: 1.2fr .8fr; } }
+    .panel { background: var(--paper); padding: 14px; }
+    .panel h3 { margin: 0 0 10px; font-size: 18px; color: var(--ink); }
+    .row { display: flex; gap: 14px; align-items: flex-start; }
+    .cover { width: 90px; height: 90px; flex: 0 0 auto; background: var(--kraft); border: 5px solid var(--card); box-shadow: 0 4px 10px rgba(0,0,0,.22); overflow: hidden; position: relative; transform: rotate(-2deg); }
+    .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cover .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px; text-align: center; color: var(--card); font-size: 14px; }
+    .panel.currently-reading .cover { width: 200px; height: 200px; }
+    .book { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .book .t { font-size: 21px; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .book .st, .book .au { color: var(--muted); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar { height: 12px; background: #DED5C2; width: 100%; overflow: hidden; margin-top: 6px; }
+    .bar > div { height: 100%; background: var(--mustard); width: 0%; }
+    .bookline { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+    .sessionline { margin-top: 4px; color: var(--muted); font-size: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .sessionline .dot { opacity: .7; }
+    .muted { color: var(--muted); }
+    .empty { color: var(--muted); font-size: 16px; padding: 6px 0 0; }
+    .rightStack { display: grid; gap: 12px; align-content: start; }
+    .mini { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 2px dotted var(--line); }
+    .mini:last-child { border-bottom: 0; }
+    .mini .l { color: var(--muted); font-size: 15px; }
+    .mini .r { font-family: var(--marker); font-size: 16px; color: var(--ink); text-align: right; overflow-wrap: anywhere; }
+    footer { margin-top: 18px; color: var(--muted); font-size: 14px; text-align: center; }
+    @media (max-width: 720px) {
+      .userTop { flex-direction: column; align-items: stretch; }
+      .kpis { justify-content: stretch; }
+      .kpi { flex: 1; min-width: 0; }
+      .panel.currently-reading .cover { width: 110px; height: 110px; }
+      .cover { width: 76px; height: 76px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-bar"></nav>
+  <script src="/static/game/paper-nav.js?v=1"></script>
+  <div class="wrap">
+    <header>
+      <div class="title paper-head" style="padding:0">
+        <h1>Listening Stats</h1>
+      </div>
+      <div class="pill" id="updated">Loading…</div>
+    </header>
+
+    <div class="grid" id="grid"></div>
+
+    <footer>
+      Numbers come straight from Audiobookshelf.
+    </footer>
+  </div>
+
+<script>
+  const $ = (sel) => document.querySelector(sel);
+
+  // Username aliases — populated from USER_ALIASES env var via the API
+  const USER_ALIASES = {};
+
+  function displayName(username){
+    return USER_ALIASES[username] || username;
+  }
+
+  // Cover fallback chain:
+  // 1) ./covers/<id>_600.webp
+  // 2) ./covers/<id>_400.webp
+  // 3) ./api/cover/<id>   (proxy)
+  // 4) placeholder
+  window.__absCoverFallback = function(img, id){
+    const step = img.dataset.step || "0";
+    if (step === "0"){
+      img.dataset.step = "1";
+      img.src = `/awards/covers/${id}_400.webp`;
+      return;
+    }
+    if (step === "1"){
+      img.dataset.step = "2";
+      img.src = `/awards/api/cover/${id}`;
+      return;
+    }
+    // final: remove broken img and show placeholder
+    const wrap = img.closest(".cover");
+    if (wrap){
+      img.remove();
+      const ph = document.createElement("div");
+      ph.className = "ph";
+      ph.textContent = "No cover";
+      wrap.appendChild(ph);
+    }
+  };
+
+  function fmtDurationFromSeconds(sec){
+    sec = Math.max(0, Number(sec) || 0);
+    const totalMin = Math.round(sec / 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  function fmtShortDate(ms){
+    if (!ms) return "—";
+    try { return new Date(ms).toLocaleDateString(); }
+    catch(e){ return "—"; }
+  }
+
+  function fmtHoursMinutesFromSeconds(sec){
+    sec = Math.max(0, Number(sec) || 0);
+    const totalMin = Math.floor(sec / 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return `${h}h ${m}m`;
+  }
+
+  function fmtMinutes(min){
+    if (min == null) return "—";
+    min = Number(min) || 0;
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    if (h <= 0) return `${m} min`;
+    return `${h}h ${m}m`;
+  }
+
+  function fmtDate(ms){
+    if (!ms) return "—";
+    try{
+      const d = new Date(ms);
+      return d.toLocaleString();
+    }catch(e){ return "—"; }
+  }
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function coverImgTag(libraryItemId){
+    if (!libraryItemId) return `<div class="ph">No cover</div>`;
+    // Start at _600.webp (your Option A)
+    return `<img loading="lazy"
+      data-step="0"
+      src="/awards/covers/${libraryItemId}_600.webp"
+      onerror="window.__absCoverFallback(this,'${libraryItemId}')"
+      alt="">`;
+  }
+
+  function bookBlock(item, type){
+    if (!item){
+      return `<div class="empty">${
+        type === "current" ? "Nothing in progress right now." : "No finished item found in progress history."
+      }</div>`;
+    }
+
+    const pct = clamp(Math.round((Number(item.progress)||0)*100), 0, 100);
+    const subtitle = item.subtitle ? item.subtitle : "";
+    const author = item.authorText ? item.authorText : "";
+
+    const line2 = type === "current"
+      ? `<div class="bookline"><span>${pct}%</span><span>${fmtHoursMinutesFromSeconds((Number(item.duration)||0))} total</span></div>`
+      : `<div class="bookline"><span>Finished</span><span>${fmtDate(item.finishedAt)}</span></div>`;
+
+    const bar = type === "current"
+      ? `<div class="bar"><div style="width:${pct}%"></div></div>`
+      : "";
+
+    const sessionHtml = (type === "current" && item.lastSession && (item.lastSession.startedAt || item.lastSession.timeListening))
+      ? `<div class="sessionline">
+          <span>Last session: ${fmtShortDate(item.lastSession.startedAt)}</span>
+          <span class="dot">•</span>
+          <span>${fmtDurationFromSeconds(item.lastSession.timeListening)}</span>
+          ${item.lastSession.device ? `<span class="dot">•</span><span>${item.lastSession.device}</span>` : ""}
+        </div>`
+      : "";
+
+    return `
+      <div class="row">
+        <div class="cover">
+          ${coverImgTag(item.libraryItemId)}
+        </div>
+        <div class="book">
+          <div class="t" title="${item.title || ""}">${item.title || "Unknown title"}</div>
+          ${subtitle ? `<div class="st" title="${subtitle}">${subtitle}</div>` : `<div class="st">&nbsp;</div>`}
+          ${author ? `<div class="au" title="${author}">${author}</div>` : `<div class="au">&nbsp;</div>`}
+          ${line2}
+          ${bar}
+          ${sessionHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function userCard(u){
+    const lastSeenText = u.lastSeen ? `Last seen: ${new Date(u.lastSeen).toLocaleDateString()}` : "Last seen: —";
+    const yearTime = fmtHoursMinutesFromSeconds(u.yearSeconds);
+    const lifetime = fmtMinutes(u.lifetimeMinutes);
+    const name = displayName(u.username);
+
+    return `
+      <section class="userCard">
+        <div class="userTop">
+          <div class="userName">
+            <div class="u">${name}</div>
+            <div class="meta">${lastSeenText}</div>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="label">This year</div>
+              <div class="value">${yearTime}</div>
+              <div class="small">Listening time</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Lifetime</div>
+              <div class="value">${lifetime}</div>
+              <div class="small">Total time</div>
+            </div>
+          
+            <div class="kpi">
+              <div class="label">Avg daily (30d)</div>
+              <div class="value">${u.avgDaily30Minutes == null ? "—" : fmtMinutes(u.avgDaily30Minutes)}</div>
+              <div class="small">Listening pace</div>
+            </div>
+</div>
+        </div>
+
+        <div class="userBody">
+			<div class="panel currently-reading">
+			  <h3>Currently reading</h3>
+			  ${bookBlock(u.currentlyReading, "current")}
+			</div>
+
+
+          <div class="rightStack">
+		<div class="panel last-finished">
+		  <h3>Last finished</h3>
+		  ${bookBlock(u.lastFinished, "finished")}
+		</div>
+            <div class="panel">
+              <h3>Quick facts</h3>
+              <div class="mini">
+                <div class="l">ABS user</div>
+                <div class="r">${u.username}</div>
+              </div>
+              <div class="mini">
+                <div class="l">Top author (YTD)</div>
+                <div class="r">${u.topAuthorYTD?.name || "—"}</div>
+              </div>
+              <div class="mini">
+                <div class="l">Top author (Life)</div>
+                <div class="r">${u.topAuthorLifetime?.name || "—"}</div>
+              </div>
+              <div class="mini">
+                <div class="l">Last 7 days</div>
+                <div class="r">${u.last7Minutes == null ? "—" : fmtMinutes(u.last7Minutes)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  async function load(){
+    const grid = $("#grid");
+    grid.innerHTML = "";
+
+    let data;
+    try{
+      const r = await fetch("/awards/api/users", { cache: "no-store" });
+      const text = await r.text();
+      try { data = JSON.parse(text); }
+      catch(e){ throw new Error(text.slice(0, 200)); }
+      if (!r.ok) throw new Error(data?.message || "Failed");
+    }catch(e){
+      $("#updated").textContent = "Error loading ./api/users";
+      grid.innerHTML = `<div class="panel"><h3>Error</h3><div class="muted">${String(e.message || e)}</div></div>`;
+      return;
+    }
+
+    $("#updated").textContent = `Updated ${new Date(data.updatedAt).toLocaleString()}`;
+
+    const users = Array.isArray(data.users) ? data.users : [];
+    if (!users.length){
+      grid.innerHTML = `<div class="panel"><h3>No users</h3><div class="muted">No users returned from the API. Check /api/users output and container logs.</div></div>`;
+      return;
+    }
+
+    grid.innerHTML = users.map(userCard).join("");
+  }
+
+  load();
+  setInterval(load, 60_000);
+</script>
+</body>
+</html>

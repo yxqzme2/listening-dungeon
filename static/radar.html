@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Radar · The Listening Dungeon</title>
+    <link rel="stylesheet" href="/static/game/paper.css?v=1">
+    <style>
+        /* Release Radar — paper-craft theme (tokens in /static/game/paper.css) */
+        :root { --ink-muted: var(--muted); --border-color: var(--ink); --font-title: var(--marker); }
+        .page-content { max-width: 1200px; margin: 0 auto; padding: 0 16px 64px; }
+        .page-header { margin-bottom: 18px; }
+
+        .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+        .ics-link { margin-left: auto; text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 3px 14px; background: var(--card); box-shadow: 2px 3px 0 rgba(0,0,0,.12); }
+        .ics-link:hover { transform: translateY(-1px); }
+
+        .view-toggle { display: flex; gap: 6px; margin-bottom: 20px; }
+        body.paper .view-tab { font-size: 16px; padding: 2px 14px; background: var(--card); border: 2px solid var(--ink); cursor: pointer; }
+        body.paper .view-tab.active { background: var(--ink); color: var(--card); }
+        @media (max-width: 640px) { .view-toggle { display: none; } }
+
+        .section-heading { font-family: var(--marker); font-size: 24px; margin-bottom: 14px; display: flex; align-items: baseline; gap: 10px; }
+        .section-heading::after { content: ""; flex: 1; border-top: 2px dotted var(--line); }
+        .section-heading span { font-family: var(--hand) !important; font-size: 16px !important; color: var(--muted) !important; }
+
+        .release-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; margin-bottom: 40px; }
+        .release-card { background: var(--card); box-shadow: var(--shadow); position: relative; display: flex; flex-direction: column; transition: transform .12s; }
+        .release-card:nth-child(odd) { transform: rotate(-.5deg); } .release-card:nth-child(even) { transform: rotate(.5deg); }
+        .release-card:hover { transform: translateY(-3px) rotate(0); }
+        .release-card .cover-wrap { position: relative; margin: 8px 8px 0; padding-top: calc(100% - 16px); background: var(--kraft); overflow: hidden; }
+        .release-card .cover-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .release-card .cover-wrap .no-cover { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+        .release-card .badge { position: absolute; top: 12px; right: -4px; font-family: var(--marker); font-size: 13px; padding: 1px 8px; transform: rotate(5deg); box-shadow: 1px 2px 0 rgba(0,0,0,.2); z-index: 2; }
+        .badge-preorder { background: var(--mustard); color: var(--ink); }
+        .badge-new { background: var(--grass); color: var(--card); }
+        .badge-missing { background: var(--red); color: var(--card); }
+        .release-card .card-body { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .card-series { font-size: 14px; color: var(--red); line-height: 1.1; }
+        .card-title { font-family: var(--marker); font-size: 17px; line-height: 1.15; }
+        .card-meta { font-size: 14px; color: var(--muted); line-height: 1.25; }
+        .card-date { font-size: 16px; margin-top: auto; padding-top: 6px; border-top: 2px dotted var(--line); }
+        .card-countdown { font-size: 14px; color: var(--navy); }
+        .card-actions { display: flex; gap: 6px; padding: 0 12px 12px; }
+        .card-audible-link { flex: 1; text-align: center; font-family: var(--marker); font-size: 14px; color: var(--card) !important; background: var(--navy); text-decoration: none; padding: 3px; clip-path: var(--tilt); }
+        .card-audible-link:hover { background: var(--red); }
+
+        .empty-state { color: var(--muted); text-align: center; padding: 28px; border: 2px dashed var(--muted); margin-bottom: 40px; grid-column: 1 / -1; }
+
+        /* calendar */
+        .cal-wrapper { margin-bottom: 40px; background: var(--card); padding: 12px; box-shadow: var(--shadow); }
+        .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .cal-month-label { font-family: var(--marker); font-size: 24px; }
+        body.paper .cal-nav { background: var(--card); border: 2px solid var(--ink); font-size: 22px; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+        body.paper .cal-nav:hover { background: var(--ink); color: var(--card); }
+        .cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .cal-table thead th { font-family: var(--marker); font-weight: 400; font-size: 15px; text-align: center; padding: 6px 0; background: var(--ink); color: var(--card); }
+        .cal-cell { vertical-align: top; border: 2px solid var(--paper); position: relative; background: #F5EFE2; overflow: hidden; }
+        .cal-cell.has-releases { cursor: pointer; }
+        .cal-cell.has-releases:hover { filter: brightness(1.05); }
+        .cal-cell.today { box-shadow: inset 0 0 0 3px var(--red); }
+        .cal-cell.other-month { background: transparent; opacity: .35; cursor: default; }
+        .cal-cell.selected { box-shadow: inset 0 0 0 3px var(--navy); }
+        .cal-day-num { position: absolute; top: 4px; left: 6px; font-family: var(--marker); font-size: 14px; color: var(--ink); line-height: 1; z-index: 2; background: rgba(251,248,240,.85); padding: 1px 4px; }
+        .cal-cell.today .cal-day-num { background: var(--red); color: var(--card); }
+        .cal-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; z-index: 2; border: 2px solid var(--card); }
+        .cal-dot.preorder { background: var(--mustard); }
+        .cal-dot.released { background: var(--grass); }
+        .cal-dot.mixed { background: linear-gradient(135deg, var(--mustard) 50%, var(--grass) 50%); }
+        .cal-covers { position: absolute; inset: 0; display: flex; align-items: stretch; overflow: hidden; }
+        .cal-covers img { object-fit: cover; height: 100%; }
+        .cal-covers.c1 img { width: 100%; } .cal-covers.c2 img { width: 50%; } .cal-covers.c3p img { width: 60%; }
+        .cal-more { position: absolute; bottom: 4px; right: 4px; background: var(--ink); color: var(--card); font-family: var(--marker); font-size: 12px; padding: 0 6px; z-index: 2; pointer-events: none; }
+        .cal-detail-row td { padding: 0; background: var(--paper); border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
+        .cal-detail-inner { padding: 12px 16px 16px; position: relative; }
+        .cal-detail-date { font-family: var(--marker); font-size: 17px; margin-bottom: 10px; display: block; }
+        .cal-detail-cards { display: flex; flex-wrap: wrap; gap: 10px; }
+        .cal-detail-card { display: flex; gap: 10px; align-items: flex-start; background: var(--card); padding: 10px; width: 270px; flex-shrink: 0; box-shadow: 2px 3px 0 rgba(0,0,0,.1); }
+        .cal-detail-card img { width: 54px; height: 54px; object-fit: cover; flex-shrink: 0; border: 3px solid var(--paper); }
+        .cal-detail-card .dc-info { flex: 1; min-width: 0; }
+        .cal-detail-card .dc-series { font-size: 13px; color: var(--red); }
+        .cal-detail-card .dc-title { font-family: var(--marker); font-size: 15px; line-height: 1.15; margin: 2px 0; }
+        .cal-detail-card .dc-meta { font-size: 13px; color: var(--muted); line-height: 1.25; }
+        .cal-detail-card .dc-badge { display: inline-block; font-family: var(--marker); font-size: 12px; padding: 0 7px; margin: 4px 0; }
+        .dc-badge.pre { background: var(--mustard); color: var(--ink); }
+        .dc-badge.rel { background: var(--grass); color: var(--card); }
+        .dc-badge.mis { background: var(--red); color: var(--card); }
+        .cal-detail-card .dc-link { font-size: 13px; color: var(--card) !important; background: var(--navy); text-decoration: none; padding: 1px 8px; display: inline-block; }
+        body.paper .cal-detail-close { position: absolute; top: 8px; right: 12px; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; }
+
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 3px solid var(--line); border-top-color: var(--red); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-left: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<nav class="nav-bar"></nav>
+<script src="/static/game/paper-nav.js?v=1"></script>
+
+<div class="page-content">
+
+    <div class="page-header paper-head">
+        <h1>Release Radar</h1>
+        <p>Upcoming audiobook releases across your favourite series.</p>
+    </div>
+
+    <div class="toolbar">
+        <a href="/radar/releases.ics" class="ics-link" title="Subscribe in Google Calendar, Outlook, or Apple Calendar">
+            &#128197; Subscribe (.ics)
+        </a>
+    </div>
+
+    <!-- View toggle -->
+    <div class="view-toggle">
+        <button class="view-tab active" id="tab-grid" onclick="setView('grid')">&#8862; Grid</button>
+        <button class="view-tab"        id="tab-cal"  onclick="setView('cal')">&#128197; Calendar</button>
+    </div>
+
+    <!-- ── Grid view ── -->
+    <div id="grid-view">
+        <div class="section-heading">Upcoming Releases</div>
+        <div id="upcoming-grid" class="release-grid">
+            <div class="empty-state" id="upcoming-empty" style="display:none">
+                No upcoming releases tracked yet. Add a series to get started.
+            </div>
+        </div>
+
+        <div class="section-heading">
+            Recent Releases
+            <span>(last 90 days)</span>
+        </div>
+        <div id="recent-grid" class="release-grid">
+            <div class="empty-state" id="recent-empty" style="display:none">
+                No recent releases found.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Calendar view ── -->
+    <div id="cal-view" style="display:none">
+        <div class="cal-wrapper">
+            <div class="cal-header">
+                <button class="cal-nav" onclick="prevMonth()" title="Previous month">&#8249;</button>
+                <span class="cal-month-label" id="cal-month-label"></span>
+                <button class="cal-nav" onclick="nextMonth()" title="Next month">&#8250;</button>
+            </div>
+            <table class="cal-table">
+                <thead>
+                    <tr>
+                        <th>Sun</th><th>Mon</th><th>Tue</th>
+                        <th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+                    </tr>
+                </thead>
+                <tbody id="cal-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+const TODAY = new Date().toISOString().slice(0, 10);
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let allReleases  = [];
+let libStatus    = {}; // {asin: bool|null} from library-check
+let calYear      = new Date().getFullYear();
+let calMonth     = new Date().getMonth(); // 0-indexed
+let selectedCell = null;
+
+const MONTH_NAMES = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+];
+
+// ── Data load ─────────────────────────────────────────────────────────────────
+
+async function loadAll() {
+    await loadReleases();
+}
+
+async function loadReleases() {
+    try {
+        const resp = await fetch('/radar/api/releases?days_back=365');
+        const data = await resp.json();
+        allReleases = data.releases || [];
+        renderReleases(allReleases);
+        // Fire the ABS library check asynchronously — don't block the render
+        loadLibraryCheck();
+    } catch (e) {
+        console.error('Failed to load releases:', e);
+    }
+}
+
+async function loadLibraryCheck() {
+    try {
+        const resp = await fetch('/radar/api/library-check');
+        const data = await resp.json();
+        applyLibraryStatus(data.status || {});
+    } catch (e) {
+        // Non-fatal — missing badges are a nice-to-have
+        console.warn('Library check unavailable:', e);
+    }
+}
+
+function applyLibraryStatus(statusMap) {
+    libStatus = statusMap; // cache for calendar detail panels
+    // Patch badge on every rendered card where the book is confirmed missing
+    for (const [asin, inAbs] of Object.entries(statusMap)) {
+        if (inAbs !== false) continue; // true or null — nothing to change
+        const card = document.querySelector(`.release-card[data-asin="${CSS.escape(asin)}"]`);
+        if (!card) continue;
+        const badge = card.querySelector('[data-default-badge]');
+        if (badge) {
+            badge.className   = 'badge badge-missing';
+            badge.textContent = 'Released / Missing';
+        }
+    }
+}
+
+// ── View toggle ───────────────────────────────────────────────────────────────
+
+function setView(mode) {
+    const isGrid = mode === 'grid';
+    document.getElementById('grid-view').style.display = isGrid ? '' : 'none';
+    document.getElementById('cal-view').style.display  = isGrid ? 'none' : '';
+    document.getElementById('tab-grid').classList.toggle('active', isGrid);
+    document.getElementById('tab-cal').classList.toggle('active', !isGrid);
+    if (!isGrid) buildCalendar();
+}
+
+// ── Grid render ───────────────────────────────────────────────────────────────
+
+function renderReleases(releases) {
+    const upcoming = releases.filter(r => r.release_date >= TODAY);
+    const recent   = releases.filter(r => r.release_date <  TODAY);
+    renderGrid('upcoming-grid', 'upcoming-empty', upcoming);
+    renderGrid('recent-grid',   'recent-empty',   recent.slice(0, 90)); // cap recent to 90 items
+}
+
+function renderGrid(gridId, emptyId, items) {
+    const grid  = document.getElementById(gridId);
+    const empty = document.getElementById(emptyId);
+    [...grid.querySelectorAll('.release-card')].forEach(c => c.remove());
+    if (!items.length) { empty.style.display = ''; return; }
+    empty.style.display = 'none';
+    items.forEach(r => grid.appendChild(buildCard(r)));
+}
+
+function buildCard(r) {
+    const isUpcoming = r.release_date > TODAY;
+    const dateLabel  = formatDate(r.release_date);
+    const countdown  = countdownText(r.release_date);
+    const seqLabel   = r.sequence ? ` #${r.sequence}` : '';
+
+    const card = document.createElement('div');
+    card.className = 'release-card';
+    card.dataset.asin = r.asin;
+    const coverHtml = r.cover_url
+        ? `<img src="${escHtml(r.cover_url)}" alt="${escHtml(r.title)}" loading="lazy">`
+        : `<div class="no-cover">&#127911;</div>`;
+    const badgeHtml = isUpcoming
+        ? `<span class="badge badge-preorder">Pre-order</span>`
+        : `<span class="badge badge-new" data-default-badge>Released</span>`;
+
+    card.innerHTML = `
+        <div class="cover-wrap">${coverHtml}${badgeHtml}</div>
+        <div class="card-body">
+            <div class="card-series">${escHtml(r.series_name)}${escHtml(seqLabel)}</div>
+            <div class="card-title">${escHtml(r.title)}</div>
+            <div class="card-meta">
+                ${r.author   ? `<div>${escHtml(r.author)}</div>` : ''}
+                ${r.narrator ? `<div style="color:var(--ink-muted)">Narr: ${escHtml(r.narrator)}</div>` : ''}
+            </div>
+            <div class="card-date">
+                ${dateLabel}
+                ${countdown ? `<div class="card-countdown">${countdown}</div>` : ''}
+            </div>
+        </div>
+        <div class="card-actions">
+            <a href="https://www.audible.com/pd/${escHtml(r.asin)}" target="_blank" rel="noopener"
+               class="card-audible-link">View on Audible</a>
+        </div>`;
+    return card;
+}
+
+// ── Calendar render ───────────────────────────────────────────────────────────
+
+function buildCalendar() {
+    // Update header label
+    document.getElementById('cal-month-label').textContent =
+        `${MONTH_NAMES[calMonth]} ${calYear}`;
+
+    // Build date → releases map
+    const dayMap = {};
+    for (const r of allReleases) {
+        if (!r.release_date) continue;
+        if (!dayMap[r.release_date]) dayMap[r.release_date] = [];
+        dayMap[r.release_date].push(r);
+    }
+
+    const tbody        = document.getElementById('cal-tbody');
+    tbody.innerHTML    = '';
+    selectedCell       = null;
+
+    const firstDow     = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+    const daysInMonth  = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrev   = new Date(calYear, calMonth, 0).getDate();
+
+    let day          = 1;
+    let nextDay      = 1;
+    let cellsFilled  = 0;
+
+    while (day <= daysInMonth) {
+        const tr = document.createElement('tr');
+        tr.className = 'cal-week-row';
+
+        for (let col = 0; col < 7; col++) {
+            const td = document.createElement('td');
+            td.className = 'cal-cell';
+
+            if (cellsFilled < firstDow) {
+                // Prev-month filler
+                td.classList.add('other-month');
+                td.innerHTML = `<span class="cal-day-num">${daysInPrev - firstDow + cellsFilled + 1}</span>`;
+
+            } else if (day > daysInMonth) {
+                // Next-month filler
+                td.classList.add('other-month');
+                td.innerHTML = `<span class="cal-day-num">${nextDay++}</span>`;
+
+            } else {
+                const iso = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayReleases = dayMap[iso] || [];
+
+                if (iso === TODAY) td.classList.add('today');
+                td.innerHTML = `<span class="cal-day-num">${day}</span>`;
+
+                if (dayReleases.length) {
+                    td.classList.add('has-releases');
+                    _attachCellContent(td, dayReleases, iso, tr);
+                }
+                day++;
+            }
+            cellsFilled++;
+            tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+    }
+    squareCells();
+}
+
+function _attachCellContent(td, releases, iso, tr) {
+    // Dot — colour indicates pre-order / released / mixed
+    const hasUpcoming = releases.some(r => r.release_date > TODAY);
+    const hasReleased = releases.some(r => r.release_date <= TODAY);
+    const dotClass    = hasUpcoming && hasReleased ? 'mixed' : hasUpcoming ? 'preorder' : 'released';
+    const dot = document.createElement('span');
+    dot.className = `cal-dot ${dotClass}`;
+    td.appendChild(dot);
+
+    // Cover thumbnails
+    const count      = releases.length;
+    const coversDiv  = document.createElement('div');
+    const coverClass = count === 1 ? 'c1' : count === 2 ? 'c2' : 'c3p';
+    coversDiv.className = `cal-covers ${coverClass}`;
+
+    const showCount = count >= 2 ? 2 : 1; // always show max 2 images
+    releases.slice(0, showCount).forEach(r => {
+        if (!r.cover_url) return;
+        const img = document.createElement('img');
+        img.src     = r.cover_url;
+        img.alt     = '';
+        img.loading = 'lazy';
+        coversDiv.appendChild(img);
+    });
+    td.appendChild(coversDiv);
+
+    // Overflow badge
+    if (count > 2) {
+        const badge = document.createElement('span');
+        badge.className   = 'cal-more';
+        badge.textContent = `+${count - 1}`;
+        td.appendChild(badge);
+    }
+
+    // Click → detail panel
+    td.addEventListener('click', () => showDayDetail(releases, iso, tr, td));
+}
+
+function showDayDetail(releases, iso, weekRow, cell) {
+    const existingPanel = document.querySelector('.cal-detail-row');
+
+    // Clicking same day again → close
+    if (selectedCell === cell) {
+        closeDayDetail();
+        return;
+    }
+
+    // Remove old panel and deselect
+    if (existingPanel) existingPanel.remove();
+    if (selectedCell)  selectedCell.classList.remove('selected');
+
+    selectedCell = cell;
+    cell.classList.add('selected');
+
+    // Build the detail row
+    const detailRow = document.createElement('tr');
+    detailRow.className = 'cal-detail-row';
+    const detailTd = document.createElement('td');
+    detailTd.colSpan = 7;
+
+    const [y, m, d] = iso.split('-').map(Number);
+    const dateLabel = new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+    });
+
+    const cardsHtml = releases.map(r => {
+        const isUpcoming = r.release_date > TODAY;
+        const seqLabel   = r.sequence ? ` #${r.sequence}` : '';
+        let badgeHtml;
+        if (isUpcoming) {
+            badgeHtml = `<span class="dc-badge pre">Pre-order</span>`;
+        } else if (libStatus[r.asin] === false) {
+            badgeHtml = `<span class="dc-badge mis">Released / Missing</span>`;
+        } else {
+            badgeHtml = `<span class="dc-badge rel">Released</span>`;
+        }
+        return `
+        <div class="cal-detail-card">
+            ${r.cover_url ? `<img src="${escHtml(r.cover_url)}" alt="">` : ''}
+            <div class="dc-info">
+                <div class="dc-series">${escHtml(r.series_name)}${escHtml(seqLabel)}</div>
+                <div class="dc-title">${escHtml(r.title)}</div>
+                <div class="dc-meta">
+                    ${r.author   ? escHtml(r.author) + '<br>' : ''}
+                    ${r.narrator ? 'Narr: ' + escHtml(r.narrator) : ''}
+                </div>
+                ${badgeHtml}
+                <br>
+                <a href="https://www.audible.com/pd/${escHtml(r.asin)}" target="_blank"
+                   rel="noopener" class="dc-link">Audible ↗</a>
+            </div>
+        </div>`;
+    }).join('');
+
+    detailTd.innerHTML = `
+        <div class="cal-detail-inner">
+            <button class="cal-detail-close" onclick="closeDayDetail()" title="Close">&#10005;</button>
+            <span class="cal-detail-date">${escHtml(dateLabel)}</span>
+            <div class="cal-detail-cards">${cardsHtml}</div>
+        </div>`;
+
+    detailRow.appendChild(detailTd);
+    weekRow.insertAdjacentElement('afterend', detailRow);
+    detailRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDayDetail() {
+    const panel = document.querySelector('.cal-detail-row');
+    if (panel) panel.remove();
+    if (selectedCell) selectedCell.classList.remove('selected');
+    selectedCell = null;
+}
+
+function squareCells() {
+    const first = document.querySelector('#cal-tbody .cal-cell');
+    if (!first) return;
+    const w = first.getBoundingClientRect().width;
+    document.querySelectorAll('#cal-tbody .cal-cell').forEach(td => td.style.height = w + 'px');
+}
+
+function prevMonth() {
+    closeDayDetail();
+    if (--calMonth < 0) { calMonth = 11; calYear--; }
+    buildCalendar();
+}
+
+function nextMonth() {
+    closeDayDetail();
+    if (++calMonth > 11) { calMonth = 0; calYear++; }
+    buildCalendar();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style, {
+        position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+        background: '#2B2621', color: '#FBF8F0', border: '0',
+        borderRadius: '0', padding: '8px 18px', fontFamily: 'var(--hand)',
+        fontSize: '17px', zIndex: '9999', pointerEvents: 'none',
+        opacity: '1', transition: 'opacity .5s', whiteSpace: 'nowrap',
+    });
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3500);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function countdownText(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const target = new Date(y, m - 1, d);
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const days = Math.round((target - now) / 86400000);
+    if (days === 0) return 'Today!';
+    if (days === 1) return 'Tomorrow';
+    if (days < 0)  return '';
+    return `in ${days} day${days !== 1 ? 's' : ''}`;
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+    return String(s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+window.addEventListener('resize', () => {
+    if (document.getElementById('cal-view').style.display !== 'none') squareCells();
+});
+
+loadAll();
+</script>
+</body>
+</html>

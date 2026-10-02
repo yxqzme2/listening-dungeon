@@ -1,0 +1,61 @@
+/* The Listening Dungeon — shared paper-craft theme for the library pages
+ * (Chronicle, Stats, Tier List, Recommendations, Radar, Request).
+ * Tokens match static/game/index.html. The top bar is drawn by paper-nav.js. */
+@import url("https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&display=swap");
+
+:root {
+  --paper: #EFE7D4; --card: #FBF8F0; --ink: #2B2621; --muted: #6E6457; --line: #D8CFBC;
+  --red: #D6503E; --mustard: #E3A93B; --navy: #22305A; --sage: #9DB77E; --grass: #4F7D3B; --kraft: #C6A06F; --blue: #A8C6D8;
+  --hand: "Gochi Hand", "Comic Sans MS", cursive; --marker: "Permanent Marker", Impact, sans-serif;
+  --r-common: #8C857A; --r-uncommon: #4E9A55; --r-rare: #3F74B5; --r-epic: #8A4FB8; --r-legendary: #D97F12;
+  --shadow: 3px 5px 0 rgba(0,0,0,.14);
+  --tilt: polygon(3px 0, 100% 2px, calc(100% - 2px) 100%, 0 calc(100% - 3px));
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body.paper {
+  min-height: 100vh; background-color: var(--paper); color: var(--ink); font-family: var(--hand); font-size: 18px; line-height: 1.3;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.10'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at center, transparent 55%, rgba(60,40,20,.16) 100%);
+  background-attachment: fixed;
+}
+body.paper h1, body.paper h2, body.paper h3 { font-family: var(--marker); font-weight: 400; letter-spacing: 0; text-shadow: none; }
+body.paper a { color: inherit; }
+body.paper button, body.paper input, body.paper select, body.paper textarea { font-family: var(--hand); font-size: 17px; color: var(--ink); }
+body.paper :focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+body.paper ::-webkit-scrollbar { width: 10px; height: 10px; }
+body.paper ::-webkit-scrollbar-track { background: transparent; }
+body.paper ::-webkit-scrollbar-thumb { background: var(--kraft); border-radius: 6px; }
+
+/* top bar (paper-nav.js) */
+.paper-top { width: 100%; max-width: 1120px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.paper-top .brand { font-family: var(--marker); font-size: 22px; text-decoration: none; color: var(--ink); line-height: 1.1; }
+.paper-top .brand small { font-family: var(--hand); font-size: 15px; color: var(--muted); display: block; }
+.paper-top nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.paper-top nav a { text-decoration: none; font-size: 17px; padding: 4px 12px; background: var(--card); box-shadow: 2px 3px 0 rgba(0,0,0,.12); color: var(--ink); }
+.paper-top nav a:hover { transform: translateY(-1px); }
+.paper-top nav a[aria-current="page"] { background: var(--ink); color: var(--card); }
+
+/* page title: a torn paper label */
+.paper-head { text-align: center; padding: 16px 16px 20px; }
+.paper-head h1 { display: inline-block; background: var(--card); padding: 8px 24px; font-size: clamp(26px, 6vw, 40px); transform: rotate(-1.2deg);
+  filter: drop-shadow(3px 4px 0 rgba(0,0,0,.18)); position: relative; margin: 0; color: var(--ink); }
+.paper-head h1::before, .paper-head h1::after { content: ""; position: absolute; top: -9px; width: 54px; height: 20px; background: rgba(226,212,168,.85); }
+.paper-head h1::before { left: -18px; transform: rotate(-26deg); } .paper-head h1::after { right: -18px; transform: rotate(22deg); }
+.paper-head p { color: var(--muted); margin: 12px auto 0; max-width: 560px; }
+
+/* shared pieces */
+.p-card { background: var(--card); box-shadow: var(--shadow); padding: 16px; }
+.p-btn { background: var(--red); color: var(--card) !important; font-family: var(--marker) !important; border: 0; padding: 8px 16px; box-shadow: 3px 4px 0 rgba(0,0,0,.25);
+  clip-path: var(--tilt); cursor: pointer; text-decoration: none; display: inline-block; }
+.p-chip { font-family: var(--hand); font-size: 15px; border: 2px solid var(--ink); background: var(--card); padding: 2px 12px; border-radius: 999px; cursor: pointer; color: var(--ink); }
+.p-chip.active, .p-chip[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+
+@media (max-width: 640px) {
+  .paper-top { padding: 10px 12px; }
+  .paper-top nav a { font-size: 15px; padding: 3px 9px; }
+  body.paper { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) { body.paper *, body.paper *::before, body.paper *::after { animation: none !important; transition: none !important; } }

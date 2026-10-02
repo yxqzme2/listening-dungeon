@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>All Monsters · Dungeon Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Permanent+Marker&display=swap">
+<style>
+:root { --paper:#EFE7D4; --card:#FBF8F0; --ink:#2B2621; --muted:#6E6457; --red:#D6503E; --navy:#22305A; color-scheme: light; }
+body { background: var(--paper); color: var(--ink); font-family: "Gochi Hand", cursive; margin: 0; padding-inline: 16px; padding-block: 16px 40px; }
+h1, h2 { font-family: "Permanent Marker", sans-serif; font-weight: 400; margin: 0 0 8px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.card { background: var(--card); padding: 12px; box-shadow: 2px 4px 0 rgba(0,0,0,.14); display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.art { height: 230px; display: grid; place-items: end center; }
+.art svg:not([height]) { height: 150px; width: auto; }
+.art svg { filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(3px 5px 3px rgba(0,0,0,.3)); }
+.name { font-family: "Permanent Marker", sans-serif; font-size: 18px; }
+.role { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--red); }
+.meta { font-size: 15px; color: var(--muted); }
+</style></head><body>
+<h1>All Monsters (admin)</h1>
+<div id="out">Loading…</div>
+<script src="/static/js/monster-art.js?v=launch1"></script>
+<script src="/static/game/dungeon.js?v=launch11"></script>
+<script>
+const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+fetch("/api/game/admin/gallery").then(r => r.json()).then(d => {
+  const tiers = [...new Set(d.monsters.map(m => m.tier))];
+  document.getElementById("out").innerHTML = tiers.map(t => `<h2>Tier ${t}: ${esc(d.tiers[t] || "")}</h2><div class="grid">${
+    d.monsters.filter(m => m.tier === t).map(m => `<div class="card"><div class="art">${m.art ? MonsterArt.render(m.art, { height: m.role === "boss" ? 190 : m.role === "elite" ? 170 : 150 }) : Dungeon.legacyArt(m.svg)}</div>
+      <span class="role">${m.role} · ${m.style}</span><span class="name">${esc(m.name)}</span><span class="meta">HP ${m.hp} · ATK ${m.atk} (at level 1) · ${m.moves.join(", ")}</span></div>`).join("")}</div>`).join("");
+});
+</script></body></html>

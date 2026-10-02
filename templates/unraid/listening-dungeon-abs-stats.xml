@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>listening-dungeon-abs-stats</Name>
+  <Repository>ghcr.io/yxqzme2/listening-dungeon-abs-stats:latest</Repository>
+  <Registry>https://github.com/yxqzme2/listening-dungeon/pkgs/container/listening-dungeon-abs-stats</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/yxqzme2/listening-dungeon/issues</Support>
+  <Project>https://github.com/yxqzme2/listening-dungeon</Project>
+  <Overview>Companion to The Listening Dungeon. Reads listening stats, finished books and series from your Audiobookshelf server and serves them to the game. It only reads, except when a player taps "add this series to my playlist" on the Recommendations page.</Overview>
+  <Category>MediaApp:Books</Category>
+  <TemplateURL>https://raw.githubusercontent.com/yxqzme2/listening-dungeon/main/templates/unraid/listening-dungeon-abs-stats.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/yxqzme2/listening-dungeon/main/docs/images/icon.png</Icon>
+  <Config Name="API port" Target="3000" Default="3000" Mode="tcp" Description="The game connects here. Change the left side if 3000 is taken (and use that port in the game's abs-stats address)." Type="Port" Display="always" Required="true" Mask="false">3000</Config>
+  <Config Name="Audiobookshelf address" Target="ABS_URL" Default="http://YOUR-SERVER-IP:13378" Mode="" Description="Your ABS server as this container can reach it, e.g. http://192.168.1.50:13378 (not localhost)." Type="Variable" Display="always" Required="true" Mask="false">http://YOUR-SERVER-IP:13378</Config>
+  <Config Name="ABS admin API token" Target="ABS_TOKEN" Default="" Mode="" Description="API token of an ABS admin user (ABS: Settings, Users, your admin user, API token)." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Players' own tokens" Target="ABS_TOKENS" Default="" Mode="" Description="Optional: username:token,username2:token2. Unlocks each player's own playlists and per-user extras." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Players" Target="ALLOWED_USERNAMES" Default="*" Mode="" Description="Comma-separated ABS usernames to include, or * for everyone. Match the game's Players setting." Type="Variable" Display="always" Required="false" Mask="false">*</Config>
+  <Config Name="Game address" Target="ENGINE_URL" Default="http://YOUR-SERVER-IP:8000" Mode="" Description="Where abs-stats reaches the game (same idea as the game's abs-stats address)." Type="Variable" Display="advanced" Required="false" Mask="false">http://YOUR-SERVER-IP:8000</Config>
+  <Config Name="Timezone" Target="TZ" Default="America/New_York" Mode="" Description="Your timezone." Type="Variable" Display="advanced" Required="false" Mask="false">America/New_York</Config>
+</Container>
