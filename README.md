@@ -23,6 +23,79 @@ A self-hosted game for [Audiobookshelf](https://www.audiobookshelf.org/) househo
 | ![The Arena](docs/images/arena.jpg) | ![The ladder](docs/images/ladder.jpg) |
 | ![The daily Store](docs/images/store.jpg) | |
 
+<details>
+<summary><b>Full feature list</b></summary>
+
+### Getting in
+- Each player picks their Audiobookshelf user on the title screen and sets a 4-digit PIN the first time (wrong guesses lock out for a while).
+- The title screen shows everyone's crawler, level, and what they're listening to right now (tap it for the book).
+- **Build your crawler:** 5 ancestries (Human, Dwarf, Elf, Dark Elf, Orc), skin, hair and color, beard, face, accent color, or randomize.
+- **7 classes**, each with its own power menu:
+  - **Brawler** (Rage): Haymaker, Body Blow, Second Wind.
+  - **Paladin** (Judgements): Smite, Holy Strike (double vs undead), Lay on Hands.
+  - **Runeblade** (Runes): Rune Burst, Greater Burst, OVERCHARGE.
+  - **Hexcaster** (Hexes): Soul Drain, Wither, Detonate.
+  - **Ranger:** an opening shot plus Volley (one arrow per energy).
+  - **Beastmaster:** call a wolf, hawk or bear, then Pack Attack, Murder of Crows or Hibernate.
+  - **Necromancer** (Raise Dead): skeletons, ghouls and wraiths.
+- Change your look or class later (costs bookmarks after the first time; changing class mid-dungeon restarts it with no penalty).
+- A first-time **How to play** tour, reopenable any time.
+
+### Dungeons
+- **Every book you finish is a dungeon**, including everything finished before you installed it. Sort your shelf by newest, longest or random; tabs for Waiting, Fallen and Cleared.
+- **Three floors of doors:** monsters, elites, loot boxes, shrines (heal), traps, and random sponsor gifts from the System. At the bottom, fight the floor boss for better loot or take the stairs.
+- **Scenery follows the book:** genre themes (crypts, space stations, cultivation sects, ruined cities, VR servers…) and custom looks with named villains for 40+ popular series.
+- Difficulty scales with your level *and* your gear, so every book is a fair fight. Elites and bosses can never be one-shot.
+- **Boons** after beating an elite (Second Breakfast, Iron Skin, Keen Eye, Last Stand, Vampire Fangs, Spiked Coat, Gas Station Coffee).
+- **Supplies** you pack automatically: Extra Potion, Lantern (see behind both doors), Smoke Bomb (escape a fight), Lucky Coin (roll a chest twice).
+- **Auto battle** (unlocks at level 5) for regular and elite fights; floor bosses are fought by hand.
+- Leave between rooms and pick up later. Fall, and the book goes to your **Fallen** shelf; revive it with bookmarks.
+
+### Loot and gear
+- Five rarities (Common to Legendary), six slots (Weapon, Head, Chest, Neck, Ring, Trinket), ~3,600 item icons.
+- **Item levels:** gear is stamped with your level when it drops, so new loot keeps up with you.
+- Longer books drop better loot; 20+ hour books give two chests. Legendaries are rare: an Epic has a small chance to upgrade.
+- **The bag:** drag-and-drop or tap, stat previews, lock favorites, scrap the rest for bookmarks, and a **Best gear** button that equips the strongest set for your class. A ▲ marks real upgrades.
+
+### Bookmarks (the currency)
+- Earned from dungeons, finishing books, badges, completing series, ranking your Tier List, and Arena wins.
+- **The Forge:** permanent upgrades: Thick Skin (health), Whetstone (attack), Iron Hide (defense), Scholar (XP), Lucky Find (loot), Field Medic (potions), Battle Ready (start fights with energy), and a Bigger Bag.
+- **The System Store** (opens after 10 clears): 5 store-only items a day, shared by the whole household (first come, first served), a very rare Legendary, Mystery Crates, and supplies.
+- **The Wardrobe:** titles, nameplate colors, capes and pet skins.
+- **Revives** for fallen books.
+
+### Series and rewards
+- **Series complete:** clear every book in a series for 5 bookmarks per book, plus a guaranteed Epic for series of 5+ books. Catching up on new books pays again.
+- **45 badges** across Progress, Skill, Reading, Class, Economy, Arena, Boss and Silly (e.g. Teetotaler, Tutorial Casualty, It's Orange!), each worth bookmarks.
+
+### Playing together
+- **Party page:** everyone's crawler with level, stats and gear, ranked; tap a friend's gear to see how it compares with yours. A live **party feed** of clears, loot, badges and duels.
+- **The Arena:** fight the ghost of another player's crawler (their real stats, gear and class moves). Beat someone above you to take their spot on the ladder. 3 challenges a day; weekly prizes for #1 (an Epic) and the most wins (a Rare); a monthly Arena Champion.
+- **December party boss, the Null Regent:** one shared health bar for the whole household, one attack a week plus Christmas, Boss Battle Banners anyone can raise for everyone, and consequences if he escapes (he returns next year, monsters get stronger until the household cleanses it, and a scar badge).
+
+### More to do
+- **Training grounds:** practice runs at any difficulty and theme, no rewards, no risk.
+- **Monster Bestiary:** every monster you've met.
+- **Monster Maker:** players design their own monster (body, head, colors, moves, even a boss); the admin approves it and it starts appearing in dungeons.
+- Generated music and sound effects (off by default).
+- Made for phones first; works on any browser.
+
+### Reading pages
+- **Chronicle:** your full listening history.
+- **Stats:** listening numbers.
+- **Tier List:** rank every series you've finished (and earn bookmarks for it).
+- **Recommendations:** suggestions from your own ratings and tags, with an "add the series to my ABS playlist" button.
+- **Release Radar:** watches Audible for new books in your series.
+- **Requests:** ask for a series to be added to the library.
+
+### For the admin (`/admin`)
+- **Monster Workshop:** build monsters by hand or import a batch (an AI prompt in [docs/MONSTER_PROMPT.md](docs/MONSTER_PROMPT.md) writes them for you), tie them to a series, approve or edit player-built monsters.
+- **Loot editor** for the item catalog.
+- Request queue, Release Radar controls, and maintenance tools.
+- Admin login with lockout; admin pages can be kept home-network-only behind a proxy.
+
+</details>
+
 ## How it works
 
 Two containers:
